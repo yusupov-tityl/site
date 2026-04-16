@@ -248,15 +248,15 @@ select:-webkit-autofill {
 /* Blinking cursor for logo — mimics terminal cursor */
 .logo-cursor {
   display: inline-block;
-  width: 2.5px;
+  width: 3.5px;
   height: 2.25rem;
   background: #FFD700; /* pure gold */
-  margin-left: 0px;
+  margin-left: -4px;
   border-radius: 1px;
   animation: logo-cursor-blink 1s steps(1) infinite;
 }
 @media (min-width: 768px) {
-  .logo-cursor { width: 3px; height: 2.75rem; margin-left: 0px; }
+  .logo-cursor { width: 4px; height: 2.75rem; margin-left: -5px; }
 }
 @keyframes logo-cursor-blink {
   0%, 49%   { opacity: 1; }
