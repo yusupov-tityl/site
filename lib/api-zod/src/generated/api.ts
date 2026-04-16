@@ -14,3 +14,40 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Accepts a contact request from the landing page form
+ * @summary Submit contact form
+ */
+export const submitContactBodyNameMin = 2;
+export const submitContactBodyNameMax = 100;
+
+export const submitContactBodyCompanyMax = 200;
+
+export const submitContactBodyContactMin = 3;
+export const submitContactBodyContactMax = 200;
+
+export const submitContactBodyMessageMin = 10;
+export const submitContactBodyMessageMax = 4000;
+
+export const SubmitContactBody = zod.object({
+  name: zod
+    .string()
+    .min(submitContactBodyNameMin)
+    .max(submitContactBodyNameMax),
+  company: zod.string().max(submitContactBodyCompanyMax).optional(),
+  contact: zod
+    .string()
+    .min(submitContactBodyContactMin)
+    .max(submitContactBodyContactMax)
+    .describe("Email or phone number"),
+  message: zod
+    .string()
+    .min(submitContactBodyMessageMin)
+    .max(submitContactBodyMessageMax),
+});
+
+export const SubmitContactResponse = zod.object({
+  ok: zod.boolean(),
+  id: zod.string(),
+});

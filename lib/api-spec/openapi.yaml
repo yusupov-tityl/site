@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: contact
+    description: Contact form operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /contact:
+    post:
+      operationId: submitContact
+      tags: [contact]
+      summary: Submit contact form
+      description: Accepts a contact request from the landing page form
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactRequest"
+      responses:
+        "200":
+          description: Submission accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +54,36 @@ components:
           type: string
       required:
         - status
-
+    ContactRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        company:
+          type: string
+          maxLength: 200
+        contact:
+          type: string
+          minLength: 3
+          maxLength: 200
+          description: Email or phone number
+        message:
+          type: string
+          minLength: 10
+          maxLength: 4000
+      required:
+        - name
+        - contact
+        - message
+    ContactResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        id:
+          type: string
+      required:
+        - ok
+        - id

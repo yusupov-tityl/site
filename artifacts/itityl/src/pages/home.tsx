@@ -9,6 +9,7 @@ import { Counter } from "@/components/Counter";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { ServicesList } from "@/components/ServicesList";
 import { MarqueeRow } from "@/components/MarqueeRow";
+import { ContactForm } from "@/components/ContactForm";
 
 const services = [
   {
@@ -715,48 +716,54 @@ export default function Home() {
 
             <motion.div variants={lineDraw} className="h-px bg-black/20 origin-left mb-12" />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-              <motion.div variants={fadeUp} className="flex flex-col gap-6">
-                <p className="text-xs uppercase tracking-[0.3em] text-black/50 font-bold">
-                  Напишите нам
-                </p>
-                <Magnetic strength={0.2}>
-                  <a
-                    href="mailto:info@itityl.ru"
-                    data-cursor="view"
-                    data-cursor-label="Письмо"
-                    className="text-2xl md:text-4xl lg:text-5xl font-heading font-extrabold tracking-tight hover:text-amber-700 transition-colors break-all"
-                  >
-                    info@itityl.ru
-                  </a>
-                </Magnetic>
-                <a
-                  href="tel:+74951234567"
-                  data-cursor="link"
-                  className="text-lg font-heading font-bold tracking-tight text-black/70 hover:text-black transition-colors"
-                >
-                  +7 (495) 123‑45‑67
-                </a>
-                <p className="text-sm text-black/50">Москва, Россия</p>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+              <motion.div variants={fadeUp} className="lg:col-span-7">
+                <ContactForm />
               </motion.div>
 
-              <motion.div variants={fadeUp} className="flex flex-col gap-5">
-                <p className="text-xs uppercase tracking-[0.3em] text-black/50 font-bold">
-                  Соцсети
-                </p>
-                {["Telegram", "LinkedIn", "ВКонтакте", "Хабр"].map((s) => (
-                  <Magnetic key={s} strength={0.25}>
+              <div className="lg:col-span-5 flex flex-col gap-12">
+                <motion.div variants={fadeUp} className="flex flex-col gap-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-black/50 font-bold">
+                    Напишите нам
+                  </p>
+                  <Magnetic strength={0.2}>
                     <a
-                      href="#"
-                      data-cursor="link"
-                      className="flex items-center gap-3 text-lg md:text-xl font-heading font-bold uppercase tracking-wider hover:text-amber-700 transition-colors group"
+                      href="mailto:info@itityl.ru"
+                      data-cursor="view"
+                      data-cursor-label="Письмо"
+                      className="text-2xl md:text-3xl font-heading font-extrabold tracking-tight hover:text-amber-700 transition-colors break-all"
                     >
-                      {s}
-                      <ArrowUpRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-400" />
+                      info@itityl.ru
                     </a>
                   </Magnetic>
-                ))}
-              </motion.div>
+                  <a
+                    href="tel:+74951234567"
+                    data-cursor="link"
+                    className="text-lg font-heading font-bold tracking-tight text-black/70 hover:text-black transition-colors"
+                  >
+                    +7 (495) 123‑45‑67
+                  </a>
+                  <p className="text-sm text-black/50">Москва, Россия</p>
+                </motion.div>
+
+                <motion.div variants={fadeUp} className="flex flex-col gap-4">
+                  <p className="text-xs uppercase tracking-[0.3em] text-black/50 font-bold">
+                    Соцсети
+                  </p>
+                  {["Telegram", "LinkedIn", "ВКонтакте", "Хабр"].map((s) => (
+                    <Magnetic key={s} strength={0.25}>
+                      <a
+                        href="#"
+                        data-cursor="link"
+                        className="flex items-center gap-3 text-base md:text-lg font-heading font-bold uppercase tracking-wider hover:text-amber-700 transition-colors group"
+                      >
+                        {s}
+                        <ArrowUpRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-400" />
+                      </a>
+                    </Magnetic>
+                  ))}
+                </motion.div>
+              </div>
             </div>
           </div>
         </motion.div>
