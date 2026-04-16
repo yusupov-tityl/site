@@ -904,20 +904,20 @@ export default function Home() {
                   </p>
                   <Magnetic strength={0.2}>
                     <a
-                      href="mailto:info@itityl.ru"
+                      href="mailto:pochta@i-tityl.ru"
                       data-cursor="view"
                       data-cursor-label="Письмо"
                       className="text-2xl md:text-3xl font-heading font-extrabold tracking-tight hover:text-amber-700 transition-colors break-all"
                     >
-                      info@itityl.ru
+                      pochta@i-tityl.ru
                     </a>
                   </Magnetic>
                   <a
-                    href="tel:+74951234567"
+                    href="tel:+79933384313"
                     data-cursor="link"
                     className="text-lg font-heading font-bold tracking-tight text-black/70 hover:text-black transition-colors"
                   >
-                    +7 (495) 123‑45‑67
+                    +7 (993) 338‑43‑13
                   </a>
                   <p className="text-sm text-black/50">Москва, Россия</p>
                 </motion.div>
