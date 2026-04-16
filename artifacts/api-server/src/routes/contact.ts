@@ -4,6 +4,7 @@ import { db, contactRequestsTable } from "@workspace/db";
 import { SubmitContactBody } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { notifyContactRequest } from "../lib/notifier";
+import { isCaptchaConfigured, verifyCaptcha } from "../lib/captcha";
 
 const router: IRouter = Router();
 
@@ -25,7 +26,7 @@ router.post("/contact", contactLimiter, async (req, res) => {
     return;
   }
 
-  const { website, source, ...payload } = parsed.data;
+  const { website, source, captchaToken, ...payload } = parsed.data;
 
   // Honeypot — silently accept but discard suspected bots.
   if (website && website.trim().length > 0) {
@@ -34,8 +35,24 @@ router.post("/contact", contactLimiter, async (req, res) => {
     return;
   }
 
+  const ipAddress = (req.ip ?? "").slice(0, 64) || null;
+
+  if (isCaptchaConfigured()) {
+    const captcha = await verifyCaptcha(captchaToken, ipAddress);
+    if (!captcha.ok) {
+      logger.warn(
+        { ip: req.ip, reason: captcha.reason },
+        "Contact captcha verification failed",
+      );
+      res.status(400).json({
+        error: "captcha_failed",
+        message: "Не удалось пройти проверку. Обновите страницу и попробуйте ещё раз.",
+      });
+      return;
+    }
+  }
+
   try {
-    const ipAddress = (req.ip ?? "").slice(0, 64) || null;
     const userAgent = req.get("user-agent") ?? null;
 
     const [row] = await db

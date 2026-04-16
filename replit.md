@@ -24,4 +24,12 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
+## Spam protection on contact form
+
+- Layered: Zod validation, hidden honeypot (`website` field), per-IP rate limit (5/hour), Cloudflare Turnstile.
+- Turnstile is optional: set both keys to enable, otherwise the form falls back to honeypot+rate-limit.
+  - Frontend: `VITE_TURNSTILE_SITE_KEY` (built into the itityl bundle).
+  - Backend: `TURNSTILE_SECRET_KEY` (used by api-server to verify the token via Cloudflare siteverify).
+- Widget runs in `interaction-only` mode — invisible for legit users, challenge appears on suspicion.
+
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

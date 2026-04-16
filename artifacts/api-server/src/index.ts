@@ -15,6 +15,14 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+if (process.env.TURNSTILE_SECRET_KEY) {
+  logger.info("Cloudflare Turnstile verification enabled for /contact");
+} else {
+  logger.warn(
+    "TURNSTILE_SECRET_KEY not set; /contact relies on honeypot + rate-limit only",
+  );
+}
+
 app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");

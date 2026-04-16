@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
@@ -6,6 +6,11 @@ import { ArrowUpRight, Check, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useSubmitContact } from "@workspace/api-client-react";
 import { easeOutExpo } from "@/lib/motion";
+import { TurnstileWidget } from "./TurnstileWidget";
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as
+  | string
+  | undefined;
 
 const contactSchema = z.object({
   name: z
@@ -42,6 +47,13 @@ const fieldBase =
 export function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const captchaTokenRef = useRef<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const captchaEnabled = Boolean(TURNSTILE_SITE_KEY);
+
+  const handleCaptchaToken = useCallback((token: string | null) => {
+    captchaTokenRef.current = token;
+  }, []);
 
   const {
     register,
@@ -66,18 +78,32 @@ export function ContactForm() {
           message: values.message,
           source: "itityl-landing",
           website: values.website ?? "",
+          captchaToken: captchaTokenRef.current ?? undefined,
         },
       });
       setSubmitted(true);
       reset();
     } catch (err) {
       const status = (err as { status?: number } | null)?.status;
+      // Turnstile tokens are single-use; reset the widget so the next submit
+      // gets a fresh token.
+      captchaTokenRef.current = null;
+      setCaptchaResetKey((n) => n + 1);
       if (status === 429) {
         setServerError(
           "Слишком много заявок с вашего адреса. Попробуйте позже.",
         );
       } else if (status === 400) {
-        setServerError("Проверьте корректность заполнения полей.");
+        const apiMessage = (err as { data?: { error?: string; message?: string } } | null)
+          ?.data;
+        if (apiMessage?.error === "captcha_failed") {
+          setServerError(
+            apiMessage.message ??
+              "Не удалось пройти проверку. Обновите страницу и попробуйте ещё раз.",
+          );
+        } else {
+          setServerError("Проверьте корректность заполнения полей.");
+        }
       } else {
         setServerError(
           err instanceof Error
@@ -226,6 +252,15 @@ export function ContactForm() {
                 />
               </Field>
             </div>
+
+            {captchaEnabled && TURNSTILE_SITE_KEY && (
+              <TurnstileWidget
+                key={captchaResetKey}
+                siteKey={TURNSTILE_SITE_KEY}
+                onToken={handleCaptchaToken}
+                className="min-h-[1px]"
+              />
+            )}
 
             {serverError && (
               <motion.p

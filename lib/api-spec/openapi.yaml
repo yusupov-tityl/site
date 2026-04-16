@@ -91,6 +91,10 @@ components:
           type: string
           description: Honeypot field — must be empty
           maxLength: 200
+        captchaToken:
+          type: string
+          description: Cloudflare Turnstile token; verified server-side when secret is configured.
+          maxLength: 4096
       required:
         - name
         - email

@@ -31,6 +31,11 @@ export interface ContactRequestInput {
    * @maxLength 200
    */
   website?: string;
+  /**
+   * Cloudflare Turnstile token; verified server-side when secret is configured.
+   * @maxLength 4096
+   */
+  captchaToken?: string;
 }
 
 export interface ContactSubmissionResult {

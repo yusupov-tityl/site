@@ -33,6 +33,8 @@ export const submitContactBodySourceMax = 100;
 
 export const submitContactBodyWebsiteMax = 200;
 
+export const submitContactBodyCaptchaTokenMax = 4096;
+
 export const SubmitContactBody = zod.object({
   name: zod
     .string()
@@ -50,6 +52,13 @@ export const SubmitContactBody = zod.object({
     .max(submitContactBodyWebsiteMax)
     .optional()
     .describe("Honeypot field — must be empty"),
+  captchaToken: zod
+    .string()
+    .max(submitContactBodyCaptchaTokenMax)
+    .optional()
+    .describe(
+      "Cloudflare Turnstile token; verified server-side when secret is configured.",
+    ),
 });
 
 export const SubmitContactResponse = zod.object({
