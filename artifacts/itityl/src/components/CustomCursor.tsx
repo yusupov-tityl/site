@@ -7,8 +7,8 @@ type CursorState = "default" | "link" | "view" | "drag";
 export function CustomCursor() {
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
-  const sx = useSpring(x, { stiffness: 350, damping: 35, mass: 0.5 });
-  const sy = useSpring(y, { stiffness: 350, damping: 35, mass: 0.5 });
+  const sx = useSpring(x, { stiffness: 600, damping: 40, mass: 0.3 });
+  const sy = useSpring(y, { stiffness: 600, damping: 40, mass: 0.3 });
 
   const [state, setState] = useState<CursorState>("default");
   const [label, setLabel] = useState("");

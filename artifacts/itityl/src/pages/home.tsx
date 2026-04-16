@@ -874,7 +874,7 @@ export default function Home() {
             <h2 className="text-[12vw] lg:text-[8.5vw] leading-[0.88] font-heading font-extrabold uppercase tracking-tighter mb-16">
               <SplitText as="span" text="Давайте" stagger={0.07} className="block" />
               <SplitText as="span" text="построим" stagger={0.07} delay={0.1} className="block text-black/40" />
-              <SplitText as="span" text="вместе." stagger={0.07} delay={0.2} className="block" />
+              <SplitText as="span" text="ИИ вместе." stagger={0.07} delay={0.2} className="block" />
             </h2>
 
             <motion.p
