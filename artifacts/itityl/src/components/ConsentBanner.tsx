@@ -49,7 +49,7 @@ export function ConsentBanner() {
               Продолжая использовать сайт, вы соглашаетесь на обработку
               файлов cookie и пользовательских данных в соответствии с{" "}
               <a
-                href="#privacy"
+                href="/privacy"
                 data-cursor="link"
                 className="underline decoration-amber-300/60 underline-offset-4 hover:text-amber-300 transition-colors"
               >

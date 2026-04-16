@@ -239,7 +239,7 @@ export default function Home() {
           <a
             href="#contact"
             data-cursor="link"
-            className="hidden md:flex items-center gap-2 bg-white text-black px-5 py-2.5 text-xs font-extrabold uppercase tracking-widest hover:bg-amber-300 transition-colors"
+            className="hidden md:flex items-center gap-2 bg-amber-400 text-white px-5 py-2.5 text-xs font-extrabold uppercase tracking-widest hover:bg-amber-300 hover:text-black transition-colors"
           >
             Связаться <ArrowUpRight className="w-3.5 h-3.5" />
           </a>
@@ -515,7 +515,7 @@ export default function Home() {
       </section>
 
       {/* ── SERVICES ── */}
-      <section id="services" className="py-32 px-6 md:px-10 bg-white text-black">
+      <section id="services" data-cursor-theme="light" className="py-32 px-6 md:px-10 bg-white text-black">
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -847,7 +847,7 @@ export default function Home() {
       </section>
 
       {/* ── CONTACT ── */}
-      <section id="contact" className="py-32 px-6 md:px-10 bg-white text-black relative overflow-hidden">
+      <section id="contact" data-cursor-theme="light" className="py-32 px-6 md:px-10 bg-white text-black relative overflow-hidden">
         <div
           aria-hidden
           className="absolute -top-40 -right-40 w-[60vw] h-[60vw] rounded-full blur-[120px] opacity-50"
@@ -944,10 +944,10 @@ export default function Home() {
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] uppercase tracking-[0.3em] text-white/30 font-bold">
           <p>&copy; {new Date().getFullYear()} АЙ-ТИТУЛ. Все права защищены.</p>
           <div className="flex items-center gap-8">
-            <a href="#" data-cursor="link" className="hover:text-amber-300 transition-colors">
+            <a href="/privacy" data-cursor="link" className="hover:text-amber-300 transition-colors">
               Конфиденциальность
             </a>
-            <a href="#" data-cursor="link" className="hover:text-amber-300 transition-colors">
+            <a href="/privacy" data-cursor="link" className="hover:text-amber-300 transition-colors">
               Условия
             </a>
           </div>
