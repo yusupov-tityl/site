@@ -9,9 +9,11 @@ export type MarqueeItem =
        * "light" — source has DARK logo on LIGHT background (most common).
        *           We invert colors so dark becomes light on our dark page.
        * "dark"  — source has LIGHT logo on DARK/colored background.
-       *           We just strip color with grayscale + screen blend.
+       *           We strip color with grayscale + screen blend.
        */
       kind?: "light" | "dark";
+      /** Optional height override: "lg" bumps the logo ~30% larger */
+      size?: "md" | "lg";
     };
 
 type Props = {
@@ -22,7 +24,9 @@ type Props = {
 
 export function MarqueeRow({ items, reverse = false, speed = 28 }: Props) {
   const [paused, setPaused] = useState(false);
-  const doubled = [...items, ...items];
+  // Triple the list so the loop is seamless — when the first copy scrolls out,
+  // the second copy occupies the same position, giving a continuous feed.
+  const looped = [...items, ...items, ...items];
 
   return (
     <div
@@ -37,7 +41,7 @@ export function MarqueeRow({ items, reverse = false, speed = 28 }: Props) {
           animationPlayState: paused ? "paused" : "running",
         }}
       >
-        {doubled.map((item, i) => {
+        {looped.map((item, i) => {
           if (typeof item === "string") {
             return (
               <span
@@ -51,14 +55,17 @@ export function MarqueeRow({ items, reverse = false, speed = 28 }: Props) {
           }
 
           const kind = item.kind ?? "light";
+          const size = item.size ?? "md";
           // For light-bg sources: invert colors -> dark logo becomes light on dark page.
           //   Crank contrast so pale logos (e.g. orange on white) become readable white.
           // For dark-bg sources: grayscale + screen blend mode erases colored bg
           const filterClass =
             kind === "light"
-              ? "grayscale invert brightness-125 contrast-200"
+              ? "grayscale invert brightness-150 contrast-[3]"
               : "grayscale brightness-150 contrast-125";
           const blendClass = kind === "dark" ? "mix-blend-screen" : "";
+          const sizeClass =
+            size === "lg" ? "h-14 md:h-20" : "h-10 md:h-14";
 
           return (
             <span
@@ -71,15 +78,18 @@ export function MarqueeRow({ items, reverse = false, speed = 28 }: Props) {
                 alt={item.alt}
                 draggable={false}
                 loading="lazy"
-                className={`h-10 md:h-14 w-auto object-contain opacity-50 hover:opacity-100 transition-opacity duration-300 select-none ${filterClass} ${blendClass}`}
+                className={`${sizeClass} w-auto object-contain opacity-55 hover:opacity-100 transition-opacity duration-300 select-none ${filterClass} ${blendClass}`}
               />
             </span>
           );
         })}
       </div>
       <style>{`
-        @keyframes marquee-fwd { from { transform: translateX(0) } to { transform: translateX(-50%) } }
-        @keyframes marquee-rev { from { transform: translateX(-50%) } to { transform: translateX(0) } }
+        /* Translate by exactly -1/3 (or +1/3 in reverse) — since the content is
+           tripled, moving by 1/3 aligns perfectly with the start of the next copy,
+           so the loop is seamless with no visible jump. */
+        @keyframes marquee-fwd { from { transform: translate3d(0,0,0) } to { transform: translate3d(-33.3333%,0,0) } }
+        @keyframes marquee-rev { from { transform: translate3d(-33.3333%,0,0) } to { transform: translate3d(0,0,0) } }
       `}</style>
     </div>
   );
