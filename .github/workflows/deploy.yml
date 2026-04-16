@@ -33,10 +33,13 @@ jobs:
       - run: pnpm -r --filter ./artifacts/itityl run build
         env:
           GITHUB_ACTIONS: "true"
+          PORT: "5173"
+          BASE_PATH: "/site/"
+          NODE_ENV: "production"
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./artifacts/itityl/dist
+          path: ./artifacts/itityl/dist/public
 
   deploy:
     environment:
