@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "itityl.com"
+version = "1.0.0"
+id = "artifacts/itityl"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21510
+
+[services.development]
+run = "pnpm --filter @workspace/itityl run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/itityl", "run", "build" ]
+publicDir = "artifacts/itityl/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21510"
+BASE_PATH = "/"
