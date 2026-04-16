@@ -273,7 +273,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-end">
             <div className="lg:col-span-8">
-              <h1 className="font-heading font-extrabold uppercase tracking-tighter leading-[0.92] text-[clamp(56px,11vw,180px)]">
+              <h1 className="font-heading font-extrabold uppercase tracking-tighter leading-[0.92] text-[clamp(44px,8.2vw,132px)]">
                 <SplitText
                   as="span"
                   text="Прикладной"
@@ -324,8 +324,7 @@ export default function Home() {
                 <Magnetic strength={0.5}>
                   <a
                     href="#contact"
-                    data-cursor="view"
-                    data-cursor-label="Написать"
+                    data-cursor="link"
                     className="flex items-center gap-3 bg-amber-400 text-black px-7 py-4 text-xs font-extrabold uppercase tracking-widest hover:bg-amber-300 transition-colors"
                   >
                     Обсудить задачи <ArrowUpRight className="w-4 h-4" />

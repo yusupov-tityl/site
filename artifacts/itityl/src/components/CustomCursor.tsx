@@ -72,11 +72,11 @@ export function CustomCursor() {
     <>
       <motion.div
         aria-hidden
-        className="pointer-events-none fixed top-0 left-0 z-[9999] mix-blend-difference"
+        className="pointer-events-none fixed top-0 left-0 z-[9999]"
         style={{ x: sx, y: sy }}
       >
         <motion.div
-          className="rounded-full bg-white flex items-center justify-center text-black text-[10px] font-bold uppercase tracking-widest"
+          className="rounded-full bg-white text-black flex items-center justify-center text-[10px] font-bold uppercase tracking-widest shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
           animate={{
             width: big ? 96 : isLink ? 56 : 14,
             height: big ? 96 : isLink ? 56 : 14,
