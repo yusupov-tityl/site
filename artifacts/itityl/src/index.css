@@ -244,3 +244,21 @@ select:-webkit-autofill {
     scroll-behavior: auto !important;
   }
 }
+
+/* Blinking cursor for logo — mimics terminal cursor */
+.logo-cursor {
+  display: inline-block;
+  color: rgb(252 211 77);
+  font-weight: 900;
+  line-height: 1;
+  font-size: 1.25rem;
+  margin-left: 2px;
+  animation: logo-cursor-blink 1s steps(1) infinite;
+}
+@media (min-width: 768px) {
+  .logo-cursor { font-size: 1.5rem; }
+}
+@keyframes logo-cursor-blink {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}

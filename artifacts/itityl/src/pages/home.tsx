@@ -176,13 +176,14 @@ const audiences = [
   },
 ];
 
+const logoBase = `${import.meta.env.BASE_URL}clients/`;
 const logos = [
-  "МосГорСвет",
-  "Москоллектор",
-  "Экотехпром",
-  "ОЭК",
-  "ГОРМОСТ",
-  "Мосгортранс",
+  { src: `${logoBase}mosgorsvet.jpg`, alt: "МосГорСвет", kind: "light" as const },
+  { src: `${logoBase}moskollektor.jpeg`, alt: "Москоллектор", kind: "light" as const },
+  { src: `${logoBase}ekotekhprom.png`, alt: "Экотехпром", kind: "light" as const },
+  { src: `${logoBase}oek.jpg`, alt: "ОЭК", kind: "light" as const },
+  { src: `${logoBase}gormost.jpeg`, alt: "ГОРМОСТ", kind: "dark" as const },
+  { src: `${logoBase}logo.jpeg`, alt: "Москоллектор", kind: "light" as const },
 ];
 
 export default function Home() {
@@ -209,10 +210,17 @@ export default function Home() {
           <Link
             href="/"
             data-cursor="link"
-            className="flex items-center gap-2 text-xl font-heading font-extrabold uppercase tracking-wider"
+            className="flex items-end gap-1"
           >
-            <span>АЙ-ТИТУЛ</span>
-            <span className="text-amber-400">|</span>
+            <img
+              src={`${import.meta.env.BASE_URL}logo.svg`}
+              alt="Ай-Титул"
+              className="h-5 md:h-6 w-auto select-none"
+              draggable={false}
+            />
+            <span className="logo-cursor" aria-hidden>
+              |
+            </span>
           </Link>
         </Magnetic>
 

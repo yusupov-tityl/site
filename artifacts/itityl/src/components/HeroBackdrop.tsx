@@ -4,10 +4,28 @@ import { prefersReducedMotion } from "@/lib/motion";
 
 export function HeroBackdrop() {
   const ref = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 800], [0, 200]);
   const scale = useTransform(scrollY, [0, 800], [1, 1.15]);
   const opacity = useTransform(scrollY, [0, 600], [1, 0.2]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = true;
+    v.playsInline = true;
+    const p = v.play();
+    if (p) {
+      p.catch(() => {
+        const onClick = () => {
+          v.play();
+          document.removeEventListener("click", onClick);
+        };
+        document.addEventListener("click", onClick);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
@@ -45,9 +63,26 @@ export function HeroBackdrop() {
       className="absolute inset-0 -z-0 overflow-hidden pointer-events-none"
       style={{ y, scale, opacity }}
     >
+      {/* Video background */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        className="absolute inset-0 w-full h-full object-cover"
+        src={`${import.meta.env.BASE_URL}hero-bg.mp4`}
+      />
+      {/* Darken overlay for text legibility */}
+      <div className="absolute inset-0 bg-black/45" />
+      <div className="absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-t from-black/70 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-[30%] bg-gradient-to-b from-black/50 to-transparent" />
+
+      {/* Subtle amber blobs layered over video */}
       <div
         data-blob="1"
-        className="absolute -top-40 -left-40 w-[70vw] h-[70vw] rounded-full blur-[140px] opacity-70"
+        className="absolute -top-40 -left-40 w-[70vw] h-[70vw] rounded-full blur-[140px] opacity-40 mix-blend-screen"
         style={{
           background:
             "radial-gradient(circle at 30% 30%, rgba(255,180,80,0.45), rgba(220,120,40,0.25) 40%, transparent 70%)",
@@ -55,33 +90,18 @@ export function HeroBackdrop() {
       />
       <div
         data-blob="2"
-        className="absolute -bottom-40 -right-32 w-[60vw] h-[60vw] rounded-full blur-[160px] opacity-70"
+        className="absolute -bottom-40 -right-32 w-[60vw] h-[60vw] rounded-full blur-[160px] opacity-40 mix-blend-screen"
         style={{
           background:
             "radial-gradient(circle at 70% 70%, rgba(255,120,40,0.40), rgba(180,60,20,0.25) 40%, transparent 70%)",
         }}
       />
-      <div
-        className="absolute top-1/3 left-1/2 w-[40vw] h-[40vw] -translate-x-1/2 rounded-full blur-[100px] opacity-40"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(255,220,120,0.3), transparent 60%)",
-        }}
-      />
+      {/* Grain */}
       <div
         className="absolute inset-0 opacity-[0.07] mix-blend-overlay"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
-        }}
-      />
-      <div
-        className="absolute inset-0 opacity-[0.08]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)",
-          backgroundSize: "80px 80px",
-          maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
         }}
       />
     </motion.div>
