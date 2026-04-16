@@ -30,21 +30,33 @@ paths:
     post:
       operationId: submitContact
       tags: [contact]
-      summary: Submit contact form
-      description: Accepts a contact request from the landing page form
+      summary: Submit a contact request
+      description: Saves a contact request and notifies the team.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ContactRequest"
+              $ref: "#/components/schemas/ContactRequestInput"
       responses:
         "200":
-          description: Submission accepted
+          description: Submitted
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ContactResponse"
+                $ref: "#/components/schemas/ContactSubmissionResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "429":
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -54,36 +66,50 @@ components:
           type: string
       required:
         - status
-    ContactRequest:
+    ContactRequestInput:
       type: object
       properties:
         name:
           type: string
           minLength: 2
-          maxLength: 100
+          maxLength: 200
+        email:
+          type: string
+          format: email
+          maxLength: 320
         company:
           type: string
           maxLength: 200
-        contact:
-          type: string
-          minLength: 3
-          maxLength: 200
-          description: Email or phone number
         message:
           type: string
           minLength: 10
-          maxLength: 4000
+          maxLength: 5000
+        source:
+          type: string
+          maxLength: 100
+        website:
+          type: string
+          description: Honeypot field — must be empty
+          maxLength: 200
       required:
         - name
-        - contact
+        - email
         - message
-    ContactResponse:
+    ContactSubmissionResult:
       type: object
       properties:
         ok:
           type: boolean
         id:
-          type: string
+          type: integer
       required:
         - ok
-        - id
+    ApiErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error

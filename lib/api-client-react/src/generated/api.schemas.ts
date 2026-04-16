@@ -9,28 +9,36 @@ export interface HealthStatus {
   status: string;
 }
 
-export interface ContactRequest {
+export interface ContactRequestInput {
   /**
    * @minLength 2
-   * @maxLength 100
+   * @maxLength 200
    */
   name: string;
+  /** @maxLength 320 */
+  email: string;
   /** @maxLength 200 */
   company?: string;
   /**
-   * Email or phone number
-   * @minLength 3
-   * @maxLength 200
-   */
-  contact: string;
-  /**
    * @minLength 10
-   * @maxLength 4000
+   * @maxLength 5000
    */
   message: string;
+  /** @maxLength 100 */
+  source?: string;
+  /**
+   * Honeypot field — must be empty
+   * @maxLength 200
+   */
+  website?: string;
 }
 
-export interface ContactResponse {
+export interface ContactSubmissionResult {
   ok: boolean;
-  id: string;
+  id?: number;
+}
+
+export interface ApiErrorResponse {
+  error: string;
+  message?: string;
 }

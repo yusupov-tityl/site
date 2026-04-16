@@ -12,27 +12,26 @@ const contactSchema = z.object({
     .string()
     .trim()
     .min(2, "Укажите имя (минимум 2 символа)")
-    .max(100, "Слишком длинное имя"),
+    .max(200, "Слишком длинное имя"),
   company: z
     .string()
     .trim()
     .max(200, "Слишком длинное название")
     .optional()
     .or(z.literal("")),
-  contact: z
+  email: z
     .string()
     .trim()
-    .min(3, "Укажите email или телефон")
-    .max(200, "Слишком длинный контакт")
-    .refine(
-      (v) => /\S+@\S+\.\S+/.test(v) || /[\d+()\-\s]{6,}/.test(v),
-      "Введите корректный email или телефон",
-    ),
+    .min(3, "Укажите email")
+    .max(320, "Слишком длинный email")
+    .email("Введите корректный email"),
   message: z
     .string()
     .trim()
     .min(10, "Опишите задачу подробнее (минимум 10 символов)")
-    .max(4000, "Сообщение слишком длинное"),
+    .max(5000, "Сообщение слишком длинное"),
+  // Honeypot — must stay empty
+  website: z.string().max(200).optional(),
 });
 
 type ContactFormValues = z.infer<typeof contactSchema>;
@@ -51,7 +50,7 @@ export function ContactForm() {
     formState: { errors, isSubmitting },
   } = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
-    defaultValues: { name: "", company: "", contact: "", message: "" },
+    defaultValues: { name: "", company: "", email: "", message: "", website: "" },
   });
 
   const submitContact = useSubmitContact();
@@ -63,18 +62,29 @@ export function ContactForm() {
         data: {
           name: values.name,
           company: values.company ? values.company : undefined,
-          contact: values.contact,
+          email: values.email,
           message: values.message,
+          source: "itityl-landing",
+          website: values.website ?? "",
         },
       });
       setSubmitted(true);
       reset();
     } catch (err) {
-      setServerError(
-        err instanceof Error
-          ? err.message
-          : "Не удалось отправить заявку. Попробуйте позже.",
-      );
+      const status = (err as { status?: number } | null)?.status;
+      if (status === 429) {
+        setServerError(
+          "Слишком много заявок с вашего адреса. Попробуйте позже.",
+        );
+      } else if (status === 400) {
+        setServerError("Проверьте корректность заполнения полей.");
+      } else {
+        setServerError(
+          err instanceof Error
+            ? err.message
+            : "Не удалось отправить заявку. Попробуйте позже.",
+        );
+      }
     }
   };
 
@@ -126,6 +136,29 @@ export function ContactForm() {
             className="flex flex-col gap-8"
             data-testid="contact-form"
           >
+            {/* Honeypot field — hidden from users, visible to bots */}
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                left: "-10000px",
+                top: "auto",
+                width: "1px",
+                height: "1px",
+                overflow: "hidden",
+              }}
+            >
+              <label>
+                Сайт
+                <input
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  {...register("website")}
+                />
+              </label>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
               <Field
                 label="Имя"
@@ -161,19 +194,19 @@ export function ContactForm() {
               </Field>
 
               <Field
-                label="Email или телефон"
-                error={errors.contact?.message}
-                htmlFor="contact-contact"
+                label="Email"
+                error={errors.email?.message}
+                htmlFor="contact-email"
                 className="md:col-span-2"
               >
                 <input
-                  id="contact-contact"
-                  type="text"
+                  id="contact-email"
+                  type="email"
                   autoComplete="email"
-                  placeholder="you@company.ru или +7 (___) ___-__-__"
+                  placeholder="you@company.ru"
                   className={fieldBase}
-                  data-testid="input-contact-contact"
-                  {...register("contact")}
+                  data-testid="input-contact-email"
+                  {...register("email")}
                 />
               </Field>
 

@@ -6,23 +6,26 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ContactRequest {
+export interface ContactRequestInput {
   /**
    * @minLength 2
-   * @maxLength 100
+   * @maxLength 200
    */
   name: string;
+  /** @maxLength 320 */
+  email: string;
   /** @maxLength 200 */
   company?: string;
   /**
-   * Email or phone number
-   * @minLength 3
-   * @maxLength 200
-   */
-  contact: string;
-  /**
    * @minLength 10
-   * @maxLength 4000
+   * @maxLength 5000
    */
   message: string;
+  /** @maxLength 100 */
+  source?: string;
+  /**
+   * Honeypot field — must be empty
+   * @maxLength 200
+   */
+  website?: string;
 }

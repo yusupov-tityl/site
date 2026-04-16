@@ -17,8 +17,9 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
-  ContactRequest,
-  ContactResponse,
+  ApiErrorResponse,
+  ContactRequestInput,
+  ContactSubmissionResult,
   HealthStatus,
 } from "./api.schemas";
 
@@ -108,40 +109,40 @@ export function useHealthCheck<
 }
 
 /**
- * Accepts a contact request from the landing page form
- * @summary Submit contact form
+ * Saves a contact request and notifies the team.
+ * @summary Submit a contact request
  */
 export const getSubmitContactUrl = () => {
   return `/api/contact`;
 };
 
 export const submitContact = async (
-  contactRequest: ContactRequest,
+  contactRequestInput: ContactRequestInput,
   options?: RequestInit,
-): Promise<ContactResponse> => {
-  return customFetch<ContactResponse>(getSubmitContactUrl(), {
+): Promise<ContactSubmissionResult> => {
+  return customFetch<ContactSubmissionResult>(getSubmitContactUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(contactRequest),
+    body: JSON.stringify(contactRequestInput),
   });
 };
 
 export const getSubmitContactMutationOptions = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ApiErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof submitContact>>,
     TError,
-    { data: BodyType<ContactRequest> },
+    { data: BodyType<ContactRequestInput> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof submitContact>>,
   TError,
-  { data: BodyType<ContactRequest> },
+  { data: BodyType<ContactRequestInput> },
   TContext
 > => {
   const mutationKey = ["submitContact"];
@@ -155,7 +156,7 @@ export const getSubmitContactMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof submitContact>>,
-    { data: BodyType<ContactRequest> }
+    { data: BodyType<ContactRequestInput> }
   > = (props) => {
     const { data } = props ?? {};
 
@@ -168,27 +169,27 @@ export const getSubmitContactMutationOptions = <
 export type SubmitContactMutationResult = NonNullable<
   Awaited<ReturnType<typeof submitContact>>
 >;
-export type SubmitContactMutationBody = BodyType<ContactRequest>;
-export type SubmitContactMutationError = ErrorType<unknown>;
+export type SubmitContactMutationBody = BodyType<ContactRequestInput>;
+export type SubmitContactMutationError = ErrorType<ApiErrorResponse>;
 
 /**
- * @summary Submit contact form
+ * @summary Submit a contact request
  */
 export const useSubmitContact = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ApiErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof submitContact>>,
     TError,
-    { data: BodyType<ContactRequest> },
+    { data: BodyType<ContactRequestInput> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof submitContact>>,
   TError,
-  { data: BodyType<ContactRequest> },
+  { data: BodyType<ContactRequestInput> },
   TContext
 > => {
   return useMutation(getSubmitContactMutationOptions(options));

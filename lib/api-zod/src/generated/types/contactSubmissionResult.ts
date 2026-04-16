@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ContactResponse {
+export interface ContactSubmissionResult {
   ok: boolean;
-  id: string;
+  id?: number;
 }
