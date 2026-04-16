@@ -183,7 +183,6 @@ const logos = [
   { src: `${logoBase}ekotekhprom.png`, alt: "Экотехпром", kind: "light" as const },
   { src: `${logoBase}oek.jpg`, alt: "ОЭК", kind: "light" as const },
   { src: `${logoBase}gormost.jpeg`, alt: "ГОРМОСТ", kind: "dark" as const },
-  { src: `${logoBase}logo.jpeg`, alt: "Москоллектор", kind: "light" as const },
 ];
 
 export default function Home() {
@@ -215,7 +214,7 @@ export default function Home() {
             <img
               src={`${import.meta.env.BASE_URL}logo.svg`}
               alt="Ай-Титул"
-              className="h-5 md:h-6 w-auto select-none"
+              className="h-8 md:h-10 w-auto select-none"
               draggable={false}
             />
             <span className="logo-cursor" aria-hidden>
@@ -381,8 +380,7 @@ export default function Home() {
           <span className="w-6 h-px bg-white/30" />
           Нам доверяют
         </motion.div>
-        <MarqueeRow items={logos} speed={32} />
-        <MarqueeRow items={[...logos].reverse()} reverse speed={36} />
+        <MarqueeRow items={logos} speed={40} />
       </section>
 
       {/* ── ABOUT ── */}

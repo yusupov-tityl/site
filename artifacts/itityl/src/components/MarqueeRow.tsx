@@ -51,26 +51,27 @@ export function MarqueeRow({ items, reverse = false, speed = 28 }: Props) {
           }
 
           const kind = item.kind ?? "light";
-          // For light-bg sources: invert colors -> dark logo becomes light on dark page
+          // For light-bg sources: invert colors -> dark logo becomes light on dark page.
+          //   Crank contrast so pale logos (e.g. orange on white) become readable white.
           // For dark-bg sources: grayscale + screen blend mode erases colored bg
           const filterClass =
             kind === "light"
-              ? "grayscale invert brightness-110 contrast-125"
-              : "grayscale brightness-150 contrast-110";
+              ? "grayscale invert brightness-125 contrast-200"
+              : "grayscale brightness-150 contrast-125";
           const blendClass = kind === "dark" ? "mix-blend-screen" : "";
 
           return (
             <span
               key={i}
               data-cursor="link"
-              className="mx-10 md:mx-14 flex-shrink-0 inline-flex items-center"
+              className="mx-8 md:mx-12 flex-shrink-0 inline-flex items-center"
             >
               <img
                 src={item.src}
                 alt={item.alt}
                 draggable={false}
                 loading="lazy"
-                className={`h-10 md:h-14 w-auto object-contain opacity-40 hover:opacity-90 transition-opacity duration-300 select-none ${filterClass} ${blendClass}`}
+                className={`h-16 md:h-24 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity duration-300 select-none ${filterClass} ${blendClass}`}
               />
             </span>
           );
