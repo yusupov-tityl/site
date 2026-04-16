@@ -71,7 +71,7 @@ export function MarqueeRow({ items, reverse = false, speed = 28 }: Props) {
                 alt={item.alt}
                 draggable={false}
                 loading="lazy"
-                className={`h-16 md:h-24 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity duration-300 select-none ${filterClass} ${blendClass}`}
+                className={`h-10 md:h-14 w-auto object-contain opacity-50 hover:opacity-100 transition-opacity duration-300 select-none ${filterClass} ${blendClass}`}
               />
             </span>
           );
