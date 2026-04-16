@@ -72,22 +72,42 @@ export function CustomCursor() {
     <>
       <motion.div
         aria-hidden
-        className="pointer-events-none fixed top-0 left-0 z-[9999]"
+        className="pointer-events-none fixed top-0 left-0 z-[9999] mix-blend-difference"
         style={{ x: sx, y: sy }}
       >
         <motion.div
-          className="rounded-full bg-white text-black flex items-center justify-center text-[10px] font-bold uppercase tracking-widest shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
+          className="relative rounded-full flex items-center justify-center text-[10px] font-bold uppercase tracking-[0.2em] text-black"
+          style={{ backgroundColor: "#fbbf24" }}
           animate={{
-            width: big ? 96 : isLink ? 56 : 14,
-            height: big ? 96 : isLink ? 56 : 14,
-            x: big ? -48 : isLink ? -28 : -7,
-            y: big ? -48 : isLink ? -28 : -7,
+            width: big ? 92 : isLink ? 48 : 12,
+            height: big ? 92 : isLink ? 48 : 12,
+            x: big ? -46 : isLink ? -24 : -6,
+            y: big ? -46 : isLink ? -24 : -6,
             rotate: isDrag ? 45 : 0,
           }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          transition={{ type: "spring", stiffness: 500, damping: 32, mass: 0.4 }}
         >
-          {big && label && <span>{label}</span>}
+          {big && label && <span className="px-2 text-center leading-tight">{label}</span>}
         </motion.div>
+      </motion.div>
+      {/* Thin outline ring that trails slightly — pure style layer */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none fixed top-0 left-0 z-[9998] mix-blend-difference"
+        style={{ x: sx, y: sy }}
+      >
+        <motion.div
+          className="rounded-full border"
+          style={{ borderColor: "rgba(251, 191, 36, 0.6)" }}
+          animate={{
+            width: big ? 112 : isLink ? 72 : 32,
+            height: big ? 112 : isLink ? 72 : 32,
+            x: big ? -56 : isLink ? -36 : -16,
+            y: big ? -56 : isLink ? -36 : -16,
+            opacity: big ? 0.4 : isLink ? 0.55 : 0.35,
+          }}
+          transition={{ type: "spring", stiffness: 220, damping: 28, mass: 0.6 }}
+        />
       </motion.div>
       <style>{`
         @media (hover: hover) and (pointer: fine) {
