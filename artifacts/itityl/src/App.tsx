@@ -9,6 +9,7 @@ import Home from "@/pages/home";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { CustomCursor } from "@/components/CustomCursor";
 import { Loader } from "@/components/Loader";
+import { ConsentBanner } from "@/components/ConsentBanner";
 import { IntroContext } from "@/lib/intro-context";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ function App() {
                 <Router />
               </WouterRouter>
               <Toaster />
+              {loaderShown && <ConsentBanner />}
             </div>
           </IntroContext.Provider>
         </TooltipProvider>
