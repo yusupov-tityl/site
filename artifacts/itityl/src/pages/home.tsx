@@ -203,7 +203,7 @@ export default function Home() {
       />
 
       {/* ── NAV ── */}
-      <nav className="group fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-10 py-5 border-b border-transparent hover:border-white/10 bg-transparent hover:bg-black/70 hover:backdrop-blur-md transition-[background-color,backdrop-filter,border-color] duration-300">
+      <nav className="group fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-10 py-5 border-b border-white/5 hover:border-white/15 bg-black/15 backdrop-blur-[3px] hover:bg-black/70 hover:backdrop-blur-md transition-[background-color,backdrop-filter,border-color] duration-300">
         <Magnetic strength={0.25}>
           <Link
             href="/"
