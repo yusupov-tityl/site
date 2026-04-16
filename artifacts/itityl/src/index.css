@@ -207,6 +207,33 @@
   }
 }
 
+/* ── Override default link/focus blue everywhere ── */
+a {
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Keep default focus for keyboard users; only restyle focus-visible. */
+:focus-visible {
+  outline: 2px solid rgba(252, 211, 77, 0.7);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+::selection { background: rgb(252 211 77); color: #000; }
+
+/* Kill blue autofill background in webkit browsers */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #000 !important;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+  caret-color: #000;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

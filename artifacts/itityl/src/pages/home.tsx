@@ -1,6 +1,13 @@
 import { useRef } from "react";
 import { Link } from "wouter";
-import { ArrowUpRight, ArrowDown } from "lucide-react";
+import {
+  ArrowUpRight,
+  ArrowDown,
+  FileText,
+  BookOpen,
+  Repeat,
+  BarChart3,
+} from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { fadeUp, stagger, lineDraw, easeOutExpo } from "@/lib/motion";
 import { SplitText } from "@/components/SplitText";
@@ -10,6 +17,63 @@ import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { ServicesList } from "@/components/ServicesList";
 import { MarqueeRow } from "@/components/MarqueeRow";
 import { ContactForm } from "@/components/ContactForm";
+import { useIntro } from "@/lib/intro-context";
+
+const whyAI = [
+  {
+    icon: FileText,
+    title: "Документы и переписка",
+    desc: "Извлечение данных, классификация, поиск, маршрутизация, проверка комплектности, ускорение обработки обращений и внутренних документов.",
+  },
+  {
+    icon: BookOpen,
+    title: "Корпоративные знания",
+    desc: "Поиск по внутренним базам знаний, регламентам, инструкциям и архивам с быстрым получением релевантных ответов и ссылок на источники.",
+  },
+  {
+    icon: Repeat,
+    title: "Рутинные процессы",
+    desc: "Снижение ручной нагрузки в операционных и поддерживающих функциях, где сотрудники тратят время на типовые действия.",
+  },
+  {
+    icon: BarChart3,
+    title: "Аналитика и решения",
+    desc: "Подготовка структурированной информации для специалистов и руководителей, ускорение доступа к данным.",
+  },
+];
+
+const aiTech = [
+  "LLM",
+  "ML",
+  "CV",
+  "NLP",
+  "RAG",
+  "Embeddings",
+  "Diffusion",
+  "Transformers",
+  "Agents",
+  "Knowledge Graphs",
+  "Speech",
+  "OCR",
+];
+
+const stack = [
+  "Python",
+  "PyTorch",
+  "TensorFlow",
+  "LangChain",
+  "Hugging Face",
+  "FastAPI",
+  "PostgreSQL",
+  "pgvector",
+  "Redis",
+  "Kafka",
+  "Airflow",
+  "Docker",
+  "Kubernetes",
+  "TypeScript",
+  "React",
+];
 
 const services = [
   {
@@ -122,6 +186,7 @@ const logos = [
 ];
 
 export default function Home() {
+  const { heroDelay: HERO_DELAY } = useIntro();
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress: heroProgress } = useScroll({
     target: heroRef,
@@ -184,93 +249,107 @@ export default function Home() {
       {/* ── HERO ── */}
       <section
         ref={heroRef}
-        className="relative pt-44 pb-24 px-6 md:px-10 min-h-screen flex flex-col justify-center overflow-hidden"
+        className="relative pt-32 md:pt-40 pb-24 px-6 md:px-10 min-h-screen flex flex-col justify-center overflow-hidden"
       >
         <HeroBackdrop />
 
         <motion.div
           style={{ y: heroTextY }}
-          className="relative z-10 max-w-[1600px] mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-end"
+          className="relative z-10 max-w-[1600px] mx-auto w-full"
         >
-          <div className="lg:col-span-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: easeOutExpo }}
-              className="mb-6 inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.3em] text-amber-300/90 font-bold"
-            >
-              <span className="w-8 h-px bg-amber-300/70" />
-              ИИ‑компания · Москва
-            </motion.div>
-
-            <h1 className="text-[12vw] lg:text-[8.5vw] leading-[0.88] font-heading font-extrabold uppercase tracking-tighter">
-              <SplitText
-                as="span"
-                text="Искусственный интеллект"
-                stagger={0.06}
-                className="block"
-              />
-              <SplitText
-                as="span"
-                text="для бизнеса"
-                stagger={0.07}
-                delay={0.15}
-                className="block text-white/40"
-              />
-              <SplitText
-                as="span"
-                text="и госсектора"
-                stagger={0.07}
-                delay={0.25}
-                className="block"
-              />
-            </h1>
-          </div>
-
           <motion.div
-            variants={stagger(0.12, 0.5)}
-            initial="hidden"
-            animate="visible"
-            className="lg:col-span-4 flex flex-col gap-8 lg:pb-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.8,
+              ease: easeOutExpo,
+              delay: HERO_DELAY,
+            }}
+            className="mb-8 inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.3em] text-amber-300/90 font-bold"
           >
-            <motion.p
-              variants={fadeUp}
-              className="text-base md:text-lg text-white/70 max-w-md font-light leading-relaxed"
-            >
-              От обследования процессов до внедрения решений. Помогаем крупным
-              организациям находить прикладные сценарии использования ИИ и
-              доводить инициативы до результата.
-            </motion.p>
-
-            <motion.div variants={fadeUp} className="flex flex-wrap gap-4">
-              <Magnetic strength={0.5}>
-                <a
-                  href="#contact"
-                  data-cursor="view"
-                  data-cursor-label="Написать"
-                  className="flex items-center gap-3 bg-amber-400 text-black px-7 py-4 text-xs font-extrabold uppercase tracking-widest hover:bg-amber-300 transition-colors"
-                >
-                  Обсудить задачи <ArrowUpRight className="w-4 h-4" />
-                </a>
-              </Magnetic>
-              <Magnetic strength={0.4}>
-                <a
-                  href="#services"
-                  data-cursor="link"
-                  className="flex items-center gap-2 border border-white/25 text-white px-6 py-4 text-xs font-extrabold uppercase tracking-widest hover:bg-white/10 transition-colors"
-                >
-                  Подробнее об услугах
-                </a>
-              </Magnetic>
-            </motion.div>
+            <span className="w-8 h-px bg-amber-300/70" />
+            ИИ‑компания · Москва
           </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-end">
+            <div className="lg:col-span-8">
+              <h1 className="font-heading font-extrabold uppercase tracking-tighter leading-[0.92] text-[clamp(56px,11vw,180px)]">
+                <SplitText
+                  as="span"
+                  text="Прикладной"
+                  stagger={0.08}
+                  delay={HERO_DELAY}
+                  className="block"
+                />
+                <SplitText
+                  as="span"
+                  text="ИИ для"
+                  stagger={0.08}
+                  delay={HERO_DELAY + 0.18}
+                  className="block text-amber-300"
+                />
+                <SplitText
+                  as="span"
+                  text="бизнеса и"
+                  stagger={0.07}
+                  delay={HERO_DELAY + 0.32}
+                  className="block"
+                />
+                <SplitText
+                  as="span"
+                  text="госсектора"
+                  stagger={0.07}
+                  delay={HERO_DELAY + 0.46}
+                  className="block text-white/40"
+                />
+              </h1>
+            </div>
+
+            <motion.div
+              variants={stagger(0.12, HERO_DELAY + 0.7)}
+              initial="hidden"
+              animate="visible"
+              className="lg:col-span-4 flex flex-col gap-8 lg:pb-6"
+            >
+              <motion.p
+                variants={fadeUp}
+                className="text-base md:text-lg text-white/70 max-w-md font-light leading-relaxed"
+              >
+                От обследования процессов до внедрения решений. Помогаем
+                крупным организациям находить прикладные сценарии
+                использования ИИ и доводить инициативы до результата.
+              </motion.p>
+
+              <motion.div variants={fadeUp} className="flex flex-wrap gap-4">
+                <Magnetic strength={0.5}>
+                  <a
+                    href="#contact"
+                    data-cursor="view"
+                    data-cursor-label="Написать"
+                    className="flex items-center gap-3 bg-amber-400 text-black px-7 py-4 text-xs font-extrabold uppercase tracking-widest hover:bg-amber-300 transition-colors"
+                  >
+                    Обсудить задачи <ArrowUpRight className="w-4 h-4" />
+                  </a>
+                </Magnetic>
+                <Magnetic strength={0.4}>
+                  <a
+                    href="#services"
+                    data-cursor="link"
+                    className="flex items-center gap-2 border border-white/25 text-white px-6 py-4 text-xs font-extrabold uppercase tracking-widest hover:bg-white/10 transition-colors"
+                  >
+                    Подробнее об услугах
+                  </a>
+                </Magnetic>
+              </motion.div>
+            </motion.div>
+          </div>
         </motion.div>
 
         {/* Scroll cue */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2, duration: 0.8 }}
+          transition={{ delay: HERO_DELAY + 1.2, duration: 0.8 }}
           className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-3 text-[10px] uppercase tracking-[0.4em] text-white/50"
         >
           <span>Скролл</span>
@@ -357,6 +436,83 @@ export default function Home() {
             </div>
           </div>
         </motion.div>
+      </section>
+
+      {/* ── WHY AI ── */}
+      <section className="py-32 px-6 md:px-10 bg-black text-white border-b border-white/15">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          variants={stagger(0.1)}
+          className="max-w-[1600px] mx-auto"
+        >
+          <motion.div
+            variants={fadeUp}
+            className="mb-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
+          >
+            <div className="lg:col-span-7">
+              <SplitText
+                as="h2"
+                text="Зачем AI нужен бизнесу?"
+                stagger={0.07}
+                className="text-4xl md:text-6xl lg:text-7xl font-heading font-extrabold uppercase tracking-tighter leading-[0.95]"
+              />
+            </div>
+            <motion.p
+              variants={fadeUp}
+              className="lg:col-span-5 text-base md:text-lg text-white/65 leading-relaxed lg:pt-4"
+            >
+              ИИ особенно эффективен там, где в организации есть большой объём
+              документов, повторяющиеся операции, регламентные процессы и
+              высокая стоимость ручной обработки информации.
+            </motion.p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-white/10 border border-white/10">
+            {whyAI.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={i}
+                  variants={fadeUp}
+                  whileHover={{ y: -4 }}
+                  transition={{ duration: 0.5, ease: easeOutExpo }}
+                  className="bg-black p-8 lg:p-10 flex flex-col gap-6 min-h-[320px] group relative overflow-hidden"
+                  data-cursor="link"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-500/0 to-amber-500/0 group-hover:from-amber-500/8 transition-all duration-700 pointer-events-none" />
+                  <div className="relative w-11 h-11 flex items-center justify-center border border-amber-300/40 text-amber-300 group-hover:bg-amber-300 group-hover:text-black transition-colors duration-500">
+                    <Icon className="w-5 h-5" strokeWidth={1.8} />
+                  </div>
+                  <div className="relative mt-auto">
+                    <h3 className="text-lg md:text-xl font-heading font-extrabold uppercase tracking-tight mb-3 group-hover:text-amber-300 transition-colors duration-500">
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-white/55 leading-relaxed">
+                      {item.desc}
+                    </p>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ── AI TECH MARQUEE ── */}
+      <section className="border-b border-white/15 py-10 bg-black flex flex-col gap-5 overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="px-6 md:px-10 flex items-center gap-3 text-[11px] uppercase tracking-[0.3em] text-amber-300/80 font-bold"
+        >
+          <span className="w-6 h-px bg-amber-300/60" />
+          Технологии ИИ
+        </motion.div>
+        <MarqueeRow items={aiTech} speed={36} />
       </section>
 
       {/* ── SERVICES ── */}
@@ -452,6 +608,21 @@ export default function Home() {
             ))}
           </div>
         </motion.div>
+      </section>
+
+      {/* ── STACK MARQUEE ── */}
+      <section className="border-b border-white/15 py-10 bg-black flex flex-col gap-5 overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="px-6 md:px-10 flex items-center gap-3 text-[11px] uppercase tracking-[0.3em] text-white/55 font-bold"
+        >
+          <span className="w-6 h-px bg-white/40" />
+          Наш стек
+        </motion.div>
+        <MarqueeRow items={stack} reverse speed={42} />
       </section>
 
       {/* ── PRODUCTS ── */}

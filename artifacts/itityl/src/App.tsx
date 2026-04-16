@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MotionConfig } from "framer-motion";
@@ -7,8 +8,14 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { CustomCursor } from "@/components/CustomCursor";
+import { Loader } from "@/components/Loader";
+import { IntroContext } from "@/lib/intro-context";
 
 const queryClient = new QueryClient();
+
+// Match the moment the loader starts sliding up (so hero words begin revealing
+// underneath while the curtain is still moving away).
+const HERO_DELAY_DURING_INTRO = 1.85;
 
 function Router() {
   return (
@@ -20,16 +27,43 @@ function Router() {
 }
 
 function App() {
+  const [loaderShown, setLoaderShown] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.sessionStorage.getItem("itityl-loaded") === "1";
+  });
+
+  useEffect(() => {
+    if (loaderShown) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [loaderShown]);
+
+  const handleDone = () => {
+    window.sessionStorage.setItem("itityl-loaded", "1");
+    setLoaderShown(true);
+  };
+
+  const heroDelay = loaderShown ? 0 : HERO_DELAY_DURING_INTRO;
+
   return (
     <QueryClientProvider client={queryClient}>
       <MotionConfig reducedMotion="user">
         <TooltipProvider>
-          <SmoothScroll />
-          <CustomCursor />
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          <Toaster />
+          <IntroContext.Provider value={{ heroDelay }}>
+            {!loaderShown && <Loader onDone={handleDone} />}
+            {/* Make the rest of the app inert while the loader is up so
+                keyboard focus and screen readers don't leak into hidden UI. */}
+            <div {...({ inert: !loaderShown ? "" : undefined } as Record<string, string | undefined>)}>
+              <SmoothScroll />
+              <CustomCursor />
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <Router />
+              </WouterRouter>
+              <Toaster />
+            </div>
+          </IntroContext.Provider>
         </TooltipProvider>
       </MotionConfig>
     </QueryClientProvider>
