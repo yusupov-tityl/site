@@ -182,7 +182,7 @@ const logos = [
   { src: `${logoBase}ekotekhprom.png`, alt: "Экотехпром", kind: "light" as const, size: "lg" as const },
   { src: `${logoBase}oek.jpg`, alt: "ОЭК", kind: "light" as const },
   { src: `${logoBase}gormost.jpeg`, alt: "ГОРМОСТ", kind: "dark" as const },
-  { src: `${logoBase}mosgorsvet.jpg`, alt: "МосГорСвет", kind: "light" as const },
+  { src: `${logoBase}mosgorsvet.jpg`, alt: "МосГорСвет", kind: "light" as const, size: "xl" as const },
 ];
 
 export default function Home() {

@@ -7,32 +7,51 @@ export type MarqueeItem =
       src: string;
       alt: string;
       kind?: "light" | "dark";
-      size?: "md" | "lg";
+      size?: "md" | "lg" | "xl";
     };
 
 type Props = {
   items: MarqueeItem[];
   reverse?: boolean;
-  /** duration in seconds for one full cycle */
+  /** seconds for one items-width to scroll by */
   speed?: number;
 };
 
 export function MarqueeRow({ items, reverse = false, speed = 28 }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const firstCopyRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
   const [copyWidth, setCopyWidth] = useState(0);
 
-  // Measure the width of ONE copy of items, so we can translate by exactly
-  // that many px at the end of the animation — no % math, no rounding drift.
+  // Measure container + one-copy width on mount and on resize
   useEffect(() => {
-    const el = firstCopyRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      setCopyWidth(el.scrollWidth);
+    const c = containerRef.current;
+    const f = firstCopyRef.current;
+    if (!c || !f) return;
+    const measure = () => {
+      setContainerWidth(c.clientWidth);
+      setCopyWidth(f.scrollWidth);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(c);
+    ro.observe(f);
+    // images may load async → remeasure when their sizes are known
+    const imgs = f.querySelectorAll("img");
+    imgs.forEach((img) => {
+      if (!img.complete) img.addEventListener("load", measure, { once: true });
     });
-    ro.observe(el);
-    setCopyWidth(el.scrollWidth);
     return () => ro.disconnect();
   }, [items]);
+
+  // How many copies do we need so that, while translating by one copy width,
+  // the viewport is always fully covered?
+  //   N * copyWidth >= containerWidth + copyWidth  →  N >= container/copy + 1
+  // Default to 3 until measurements land.
+  const copies =
+    copyWidth > 0 && containerWidth > 0
+      ? Math.max(2, Math.ceil(containerWidth / copyWidth) + 1)
+      : 3;
 
   const renderItem = (item: MarqueeItem, keyPrefix: string, idx: number) => {
     if (typeof item === "string") {
@@ -47,7 +66,12 @@ export function MarqueeRow({ items, reverse = false, speed = 28 }: Props) {
       );
     }
     const size = item.size ?? "md";
-    const sizeClass = size === "lg" ? "h-14 md:h-20" : "h-10 md:h-14";
+    const sizeClass =
+      size === "xl"
+        ? "h-16 md:h-24"
+        : size === "lg"
+          ? "h-14 md:h-20"
+          : "h-10 md:h-14";
     return (
       <span
         key={`${keyPrefix}-${idx}`}
@@ -58,36 +82,42 @@ export function MarqueeRow({ items, reverse = false, speed = 28 }: Props) {
           src={item.src}
           alt={item.alt}
           kind={item.kind ?? "light"}
-          className={`${sizeClass} w-auto object-contain opacity-80 hover:opacity-100 transition-opacity duration-300 select-none`}
+          className={`${sizeClass} w-auto object-contain opacity-90 hover:opacity-100 transition-opacity duration-300 select-none`}
         />
       </span>
     );
   };
 
-  // We render TWO identical copies of items. The animation translates the
-  // whole track left by exactly ONE copy width. When it snaps back to 0, the
-  // viewport has identical content (copy 2 looks like copy 1), so zero jump.
   const keyframeName = reverse ? "marquee-rev" : "marquee-fwd";
+  const ready = copyWidth > 0;
 
   return (
     <div
+      ref={containerRef}
       className="overflow-hidden flex relative"
-      style={{
-        ["--copy-width" as string]: `${copyWidth}px`,
-      }}
+      style={{ ["--copy-width" as string]: `${copyWidth}px` }}
     >
       <div
         className="flex whitespace-nowrap will-change-transform items-center"
         style={{
-          animation: copyWidth > 0 ? `${keyframeName} ${speed}s linear infinite` : "none",
+          animation: ready ? `${keyframeName} ${speed}s linear infinite` : "none",
         }}
       >
+        {/* First (measured) copy */}
         <div ref={firstCopyRef} className="flex items-center flex-shrink-0">
-          {items.map((item, i) => renderItem(item, "a", i))}
+          {items.map((item, i) => renderItem(item, "m0", i))}
         </div>
-        <div className="flex items-center flex-shrink-0" aria-hidden>
-          {items.map((item, i) => renderItem(item, "b", i))}
-        </div>
+        {/* Additional identical copies — enough to keep viewport filled during
+            the full -copyWidth translation cycle. */}
+        {Array.from({ length: copies - 1 }).map((_, c) => (
+          <div
+            key={`copy-${c}`}
+            className="flex items-center flex-shrink-0"
+            aria-hidden
+          >
+            {items.map((item, i) => renderItem(item, `c${c}`, i))}
+          </div>
+        ))}
       </div>
       <style>{`
         @keyframes marquee-fwd {
