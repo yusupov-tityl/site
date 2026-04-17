@@ -50,13 +50,6 @@ export function Loader({ onDone }: Props) {
             <span className="w-6 h-px bg-amber-300" />
             АЙ-ТИТУЛ
           </div>
-          <div className="absolute top-6 right-6 md:top-10 md:right-10 flex items-center">
-            <img
-              src="/logo.svg"
-              alt="АЙ-ТИТУЛ"
-              className="h-5 md:h-6 w-auto opacity-80"
-            />
-          </div>
 
           <motion.div
             initial={{ opacity: 0, y: 12 }}
