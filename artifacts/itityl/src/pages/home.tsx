@@ -6,7 +6,7 @@ import iconData from "@assets/cap-data_1776417413421.png";
 import iconTraining from "@assets/cap-training_1776417419081.png";
 import iconStrategy from "@assets/cap-strategy_1776417425816.png";
 import pavelVideo from "@assets/hf_20260417_090223_ec2b49b0-2307-4bf5-8c78-dd43811a0bab_1776426104695.mp4";
-import olegVideo from "@assets/hf_20260417_094002_9f9918df-7e22-4a8c-bcad-f0ca7591c13d_1776426311546.mp4";
+import olegVideo from "@assets/hf_20260417_115614_bed0709f-bd0d-46f5-8a46-e20808c6fdc2_1776427269536.mp4";
 import maximVideo from "@assets/hf_20260417_094002_9f9918df-7e22-4a8c-bcad-f0ca7591c13d_1776426430632.mp4";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { fadeUp, stagger, lineDraw, easeOutExpo } from "@/lib/motion";
