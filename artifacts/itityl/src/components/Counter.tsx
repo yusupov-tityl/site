@@ -10,7 +10,7 @@ type Props = {
 
 export function Counter({ value, duration = 1800, className }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-20%" });
+  const inView = useInView(ref, { once: true, amount: 0.4 });
   const [display, setDisplay] = useState("0");
 
   const match = value.match(/^(\d+)(.*)$/);
