@@ -359,23 +359,31 @@ export function BgMusic({ src }: { src: string }) {
                 : "bg-black/60 border-white/25 hover:border-white/50"
             }`}
         >
+          {/* Single fixed-size slot so Sound On and Sound Off render at
+              identical widths. When ON: 3 FFT bars (kept mounted so the
+              rAF loop keeps hitting them). When OFF: muted icon in the
+              same 20×16 box. */}
           <span
             aria-hidden
-            className="flex items-end gap-[3px] h-4 w-5"
-            style={{ visibility: soundOn ? "visible" : "hidden" }}
+            className="relative flex items-end justify-center h-4 w-5"
           >
-            {Array.from({ length: NUM_BARS }).map((_, i) => (
-              <span
-                key={i}
-                ref={(el) => {
-                  barsRef.current[i] = el;
-                }}
-                className="w-[3px] h-full bg-amber-300 rounded-[1px] origin-bottom"
-                style={{ transform: "scaleY(0.3)", transition: "transform 60ms linear" }}
-              />
-            ))}
+            <span
+              className="absolute inset-0 flex items-end gap-[3px]"
+              style={{ visibility: soundOn ? "visible" : "hidden" }}
+            >
+              {Array.from({ length: NUM_BARS }).map((_, i) => (
+                <span
+                  key={i}
+                  ref={(el) => {
+                    barsRef.current[i] = el;
+                  }}
+                  className="w-[3px] h-full bg-amber-300 rounded-[1px] origin-bottom"
+                  style={{ transform: "scaleY(0.3)", transition: "transform 60ms linear" }}
+                />
+              ))}
+            </span>
+            {!soundOn && <VolumeX className="w-5 h-5 text-white/80" />}
           </span>
-          {!soundOn && <VolumeX className="w-5 h-5 text-white/80" />}
           <span
             className={`flex flex-col items-start leading-none font-bold uppercase tracking-[0.18em] text-[10px] md:text-[11px] transition-colors duration-300 ${
               soundOn ? "text-amber-300" : "text-white/70"
