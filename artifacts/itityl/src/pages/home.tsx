@@ -192,10 +192,22 @@ const products = [
   },
 ];
 
-const team: { name: string; role: string; video?: string }[] = [
+const team: {
+  name: string;
+  role: string;
+  video?: string;
+  objectPosition?: string;
+}[] = [
   { name: "Павел", role: "CEO", video: pavelVideo },
   { name: "Олег", role: "Руководитель ИИ-проектов", video: olegVideo },
-  { name: "Максим", role: "Главный разработчик", video: maximVideo },
+  {
+    name: "Максим",
+    role: "Главный разработчик",
+    video: maximVideo,
+    // Source frames Maxim's head left-of-center; nudge the visible
+    // area so the head lines up with the card center.
+    objectPosition: "30% center",
+  },
 ];
 
 const audienceImgBase = `${import.meta.env.BASE_URL}audiences/`;
@@ -1004,6 +1016,7 @@ export default function Home() {
                       playsInline
                       preload="metadata"
                       className="absolute inset-0 w-full h-full object-cover"
+                      style={{ objectPosition: member.objectPosition ?? "center" }}
                     />
                   ) : (
                     <span className="text-white/10 group-hover:text-amber-300/30 font-heading text-[160px] uppercase font-extrabold absolute leading-none transition-colors duration-700">
