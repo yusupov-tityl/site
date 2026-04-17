@@ -26,9 +26,10 @@ export function BgMusic({ src }: { src: string }) {
     a.play().catch(() => {});
   }, []);
 
-  // On the first user gesture, sync <audio>.muted with wantsSound and
-  // (re)start playback. Uses capture-phase document listeners so
-  // Lenis / other scroll libs can't swallow the event.
+  // Only the first SCROLL unmutes the audio — no unmute on plain
+  // taps/clicks. `wheel` covers desktop mouse-wheel, `touchmove`
+  // covers mobile finger-scroll, `scroll` is a last-resort fallback
+  // (may be swallowed by Lenis, hence capture phase).
   useEffect(() => {
     let done = false;
     const sync = () => {
@@ -40,22 +41,24 @@ export function BgMusic({ src }: { src: string }) {
       a.play().catch(() => {});
       cleanup();
     };
-    const events = [
-      "pointerdown",
-      "pointerup",
-      "touchstart",
-      "touchend",
-      "mousedown",
-      "click",
-      "keydown",
-      "wheel",
-    ] as const;
+    const events = ["wheel", "touchmove", "scroll"] as const;
     const cleanup = () => {
       for (const e of events) document.removeEventListener(e, sync, true);
+      window.removeEventListener("scroll", sync, true);
     };
     for (const e of events) {
-      document.addEventListener(e, sync, { capture: true, once: true });
+      document.addEventListener(e, sync, {
+        capture: true,
+        once: true,
+        passive: true,
+      });
     }
+    // Lenis often hijacks window.scroll — also listen there explicitly.
+    window.addEventListener("scroll", sync, {
+      capture: true,
+      once: true,
+      passive: true,
+    });
     return cleanup;
   }, [wantsSound]);
 
