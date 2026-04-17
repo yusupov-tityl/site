@@ -42,6 +42,29 @@ const whyAI = [
   },
 ];
 
+const outcomes = [
+  {
+    n: "01",
+    title: "Сокращение ручной обработки",
+    desc: "Снижение нагрузки на сотрудников в массовых и повторяющихся операциях.",
+  },
+  {
+    n: "02",
+    title: "Ускорение работы с документами",
+    desc: "Более быстрое извлечение, поиск, анализ и передача информации по маршруту.",
+  },
+  {
+    n: "03",
+    title: "Повышение доступности знаний",
+    desc: "Быстрый доступ к внутренним регламентам, инструкциям и накопленной экспертизе.",
+  },
+  {
+    n: "04",
+    title: "Понятная дорожная карта внедрения",
+    desc: "Приоритизированный портфель ИИ-инициатив с понятной логикой запуска.",
+  },
+];
+
 const aiTech = [
   "LLM",
   "ML",
@@ -506,6 +529,129 @@ export default function Home() {
             ))}
           </div>
         </motion.div>
+      </section>
+
+      {/* ── OUTCOMES (Что получает заказчик) ── */}
+      <section className="relative py-32 px-6 md:px-10 bg-black text-white border-b border-white/15 overflow-hidden">
+        {/* ambient amber blob */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[80vw] h-[80vw] max-w-[1100px] max-h-[1100px] rounded-full blur-[160px] opacity-[0.18]"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(251,191,36,0.55), transparent 60%)",
+          }}
+        />
+        {/* faint grid */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage:
+              "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)",
+            backgroundSize: "80px 80px",
+          }}
+        />
+
+        <div className="relative max-w-[1600px] mx-auto">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-80px" }}
+            variants={stagger(0.1)}
+            className="mb-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
+          >
+            <motion.div variants={fadeUp} className="lg:col-span-3">
+              <span className="text-xs uppercase tracking-[0.3em] text-amber-300/80 font-bold inline-flex items-center gap-3">
+                <span className="w-6 h-px bg-amber-300/60" />
+                Эффект
+              </span>
+            </motion.div>
+            <div className="lg:col-span-9">
+              <SplitText
+                as="h2"
+                text="Что получает заказчик"
+                stagger={0.06}
+                className="text-4xl md:text-6xl lg:text-7xl font-heading font-extrabold uppercase tracking-tighter leading-[0.95]"
+              />
+              <motion.p
+                variants={fadeUp}
+                className="mt-8 max-w-3xl text-base md:text-lg text-white/65 leading-relaxed"
+              >
+                Результат внедрения ИИ зависит от того, насколько точно
+                определена задача и насколько организация готова к таким
+                изменениям. Поэтому мы оцениваем эффект не по общим ожиданиям,
+                а по тому, как решение влияет на конкретные процессы.
+              </motion.p>
+              <motion.div
+                variants={lineDraw}
+                className="mt-12 h-px bg-white/20 origin-left"
+              />
+            </div>
+          </motion.div>
+
+          {/* Cards — каждая карточка анимируется индивидуально при попадании
+              в viewport. Эффект «по одному элементу при скролле». */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-white/10 border border-white/10">
+            {outcomes.map((o, i) => (
+              <motion.div
+                key={o.n}
+                initial={{ opacity: 0, y: 60 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.55 }}
+                transition={{
+                  duration: 0.9,
+                  ease: easeOutExpo,
+                  delay: 0.05 + (i % 4) * 0.08,
+                }}
+                whileHover={{ y: -6 }}
+                className="bg-black p-8 lg:p-10 min-h-[360px] relative overflow-hidden group flex flex-col"
+                data-cursor="link"
+              >
+                {/* Big amber number ghost */}
+                <motion.span
+                  aria-hidden
+                  initial={{ opacity: 0, scale: 1.4, y: -10 }}
+                  whileInView={{ opacity: 0.07, scale: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.55 }}
+                  transition={{ duration: 1.1, ease: easeOutExpo, delay: 0.1 + (i % 4) * 0.08 }}
+                  className="absolute -top-4 -right-2 font-heading font-extrabold text-[160px] leading-none text-amber-300 group-hover:opacity-25 transition-opacity duration-700 select-none pointer-events-none"
+                >
+                  {o.n}
+                </motion.span>
+
+                {/* Hover gradient wash */}
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/0 to-amber-500/0 group-hover:from-amber-500/10 transition-all duration-700 pointer-events-none" />
+
+                {/* Index pill + line */}
+                <div className="relative flex items-center gap-3 mb-8">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-amber-300/90">
+                    {o.n}
+                  </span>
+                  <motion.span
+                    initial={{ scaleX: 0 }}
+                    whileInView={{ scaleX: 1 }}
+                    viewport={{ once: true, amount: 0.55 }}
+                    transition={{ duration: 0.9, ease: easeOutExpo, delay: 0.25 + (i % 4) * 0.08 }}
+                    className="block h-px w-16 bg-amber-300/60 origin-left"
+                  />
+                </div>
+
+                <div className="relative mt-auto">
+                  <h3 className="text-xl md:text-2xl font-heading font-extrabold uppercase tracking-tight leading-[1.05] mb-4 group-hover:text-amber-300 transition-colors duration-500">
+                    {o.title}
+                  </h3>
+                  <p className="text-sm md:text-[15px] text-white/60 leading-relaxed">
+                    {o.desc}
+                  </p>
+                </div>
+
+                {/* Bottom amber underline drawing in on hover */}
+                <span className="absolute bottom-0 left-0 h-[2px] w-0 bg-amber-300 group-hover:w-full transition-all duration-700 ease-out" />
+              </motion.div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ── AI TECH MARQUEE ── */}
