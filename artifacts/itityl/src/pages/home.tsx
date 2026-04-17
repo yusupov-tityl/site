@@ -5,6 +5,7 @@ import iconProof from "@assets/cap-proof_1776417409806.png";
 import iconData from "@assets/cap-data_1776417413421.png";
 import iconTraining from "@assets/cap-training_1776417419081.png";
 import iconStrategy from "@assets/cap-strategy_1776417425816.png";
+import pavelVideo from "@assets/hf_20260417_090223_ec2b49b0-2307-4bf5-8c78-dd43811a0bab_1776426104695.mp4";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { fadeUp, stagger, lineDraw, easeOutExpo } from "@/lib/motion";
 import { SplitText } from "@/components/SplitText";
@@ -152,8 +153,8 @@ const products = [
   },
 ];
 
-const team = [
-  { name: "Александр", role: "Технический директор" },
+const team: { name: string; role: string; video?: string }[] = [
+  { name: "Павел", role: "CEO", video: pavelVideo },
   { name: "Мария", role: "Руководитель ИИ-проектов" },
   { name: "Дмитрий", role: "Главный разработчик" },
 ];
@@ -827,9 +828,21 @@ export default function Home() {
                 data-cursor-label="Профиль"
               >
                 <div className="aspect-[3/4] bg-white/5 mb-6 relative overflow-hidden flex items-center justify-center border border-white/10 group-hover:border-amber-300/40 transition-colors duration-500">
-                  <span className="text-white/10 group-hover:text-amber-300/30 font-heading text-[160px] uppercase font-extrabold absolute leading-none transition-colors duration-700">
-                    {member.name[0]}
-                  </span>
+                  {member.video ? (
+                    <video
+                      src={member.video}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white/10 group-hover:text-amber-300/30 font-heading text-[160px] uppercase font-extrabold absolute leading-none transition-colors duration-700">
+                      {member.name[0]}
+                    </span>
+                  )}
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-t from-amber-500/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"
                   />
