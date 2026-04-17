@@ -9,7 +9,7 @@ import Home from "@/pages/home";
 import Privacy from "@/pages/privacy";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { CustomCursor } from "@/components/CustomCursor";
-import { Loader } from "@/components/Loader";
+import { EntryGate } from "@/components/EntryGate";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { IntroContext } from "@/lib/intro-context";
 
@@ -30,10 +30,7 @@ function Router() {
 }
 
 function App() {
-  const [loaderShown, setLoaderShown] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.sessionStorage.getItem("itityl-loaded") === "1";
-  });
+  const [loaderShown, setLoaderShown] = useState(false);
 
   useEffect(() => {
     if (loaderShown) return;
@@ -44,7 +41,6 @@ function App() {
   }, [loaderShown]);
 
   const handleDone = () => {
-    window.sessionStorage.setItem("itityl-loaded", "1");
     setLoaderShown(true);
   };
 
@@ -55,7 +51,7 @@ function App() {
       <MotionConfig reducedMotion="user">
         <TooltipProvider>
           <IntroContext.Provider value={{ heroDelay }}>
-            {!loaderShown && <Loader onDone={handleDone} />}
+            {!loaderShown && <EntryGate onEnter={handleDone} />}
             {/* Make the rest of the app inert while the loader is up so
                 keyboard focus and screen readers don't leak into hidden UI. */}
             <div {...({ inert: !loaderShown ? "" : undefined } as Record<string, string | undefined>)}>
