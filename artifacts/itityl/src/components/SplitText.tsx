@@ -1,4 +1,4 @@
-import { motion, type Variants } from "framer-motion";
+import { m as motion, type Variants } from "framer-motion";
 import { easeOutExpo } from "@/lib/motion";
 
 type SplitTag = "h1" | "h2" | "h3" | "p" | "span" | "div";

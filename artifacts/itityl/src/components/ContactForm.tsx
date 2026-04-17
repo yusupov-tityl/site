@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion, AnimatePresence } from "framer-motion";
+import { m as motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight, Check, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useSubmitContact } from "@workspace/api-client-react";

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { lazy, Suspense, useRef } from "react";
 import { Link } from "wouter";
 import { ArrowUpRight, ArrowDown } from "lucide-react";
 const iconBase = `${import.meta.env.BASE_URL}icons/`;
@@ -9,7 +9,7 @@ const iconStrategy = `${iconBase}cap-strategy.png`;
 import pavelVideo from "@assets/hf_20260417_090223_ec2b49b0-2307-4bf5-8c78-dd43811a0bab_1776426104695.mp4";
 import olegVideo from "@assets/hf_20260417_115614_bed0709f-bd0d-46f5-8a46-e20808c6fdc2_1776427269536.mp4";
 import maximVideo from "@assets/hf_20260417_094002_9f9918df-7e22-4a8c-bcad-f0ca7591c13d_1776426430632.mp4";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { m as motion, useScroll, useTransform } from "framer-motion";
 import { fadeUp, stagger, lineDraw, easeOutExpo } from "@/lib/motion";
 import { SplitText } from "@/components/SplitText";
 import { Magnetic } from "@/components/Magnetic";
@@ -17,9 +17,17 @@ import { Counter } from "@/components/Counter";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { ServicesList } from "@/components/ServicesList";
 import { MarqueeRow } from "@/components/MarqueeRow";
-import { ContactForm } from "@/components/ContactForm";
-import { BgMusic } from "@/components/BgMusic";
 import { useIntro } from "@/lib/intro-context";
+
+// Code-split the contact form (pulls in react-hook-form + zod + Turnstile)
+// and the background-music widget (pulls in Web Audio glue). Both live
+// below the fold and don't need to be in the initial paint path.
+const ContactForm = lazy(() =>
+  import("@/components/ContactForm").then((m) => ({ default: m.ContactForm })),
+);
+const BgMusic = lazy(() =>
+  import("@/components/BgMusic").then((m) => ({ default: m.BgMusic })),
+);
 
 const whyAI = [
   {
@@ -261,7 +269,9 @@ export default function Home() {
         className="fixed top-0 left-0 right-0 h-[2px] bg-amber-400/80 origin-left z-[100]"
         style={{ scaleX: scrollYProgress }}
       />
-      <BgMusic src={`${import.meta.env.BASE_URL}bg-music.mp3`} />
+      <Suspense fallback={null}>
+        <BgMusic src={`${import.meta.env.BASE_URL}bg-music.mp3`} />
+      </Suspense>
 
       {/* ── NAV ── */}
       <nav className="group fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-10 py-5 border-b border-white/5 hover:border-white/15 bg-black/15 backdrop-blur-[3px] hover:bg-black/70 hover:backdrop-blur-md transition-[background-color,backdrop-filter,border-color] duration-300">
@@ -1092,7 +1102,9 @@ export default function Home() {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
               <motion.div variants={fadeUp} className="lg:col-span-7">
-                <ContactForm />
+                <Suspense fallback={<div className="h-96" aria-hidden />}>
+                  <ContactForm />
+                </Suspense>
               </motion.div>
 
               <div className="lg:col-span-5 flex flex-col gap-12">

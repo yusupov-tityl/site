@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m as motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { easeOutExpo, fadeUp } from "@/lib/motion";
 

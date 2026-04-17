@@ -26,14 +26,17 @@ if (!basePath) {
   );
 }
 
+const isProd = process.env.NODE_ENV === "production";
+
 export default defineConfig({
   base: basePath,
   plugins: [
     react(),
     tailwindcss(),
-    runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
+    // The Replit runtime-error overlay is a dev helper — ship only in dev
+    // so its module doesn't bloat the production bundle users download.
+    ...(!isProd ? [runtimeErrorOverlay()] : []),
+    ...(!isProd && process.env.REPL_ID !== undefined
       ? [
           await import("@replit/vite-plugin-cartographer").then((m) =>
             m.cartographer({
@@ -57,6 +60,21 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Split the 630KB mega-chunk into vendor groups so the browser can
+    // cache them independently and parse them in parallel. These groups
+    // are cherry-picked from what the bundle analyzer showed as the top
+    // contributors.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ["react", "react-dom", "react/jsx-runtime"],
+          framer: ["framer-motion"],
+          router: ["wouter"],
+          forms: ["react-hook-form", "@hookform/resolvers", "zod"],
+          lenis: ["lenis"],
+        },
+      },
+    },
   },
   server: {
     port,

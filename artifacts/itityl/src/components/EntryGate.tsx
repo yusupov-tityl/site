@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m as motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { easeInOutExpo, easeOutExpo } from "@/lib/motion";
 

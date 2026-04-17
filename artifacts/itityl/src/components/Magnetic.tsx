@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode, type MouseEvent } from "react";
-import { motion, useMotionValue, useSpring, type HTMLMotionProps } from "framer-motion";
+import { m as motion, useMotionValue, useSpring, type HTMLMotionProps } from "framer-motion";
 import { prefersReducedMotion } from "@/lib/motion";
 
 type MagneticProps = {

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { Magnetic } from "@/components/Magnetic";
 import { easeOutExpo } from "@/lib/motion";
