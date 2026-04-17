@@ -74,12 +74,12 @@ export function MonoLogo({ src, alt, kind = "light", className }: Props) {
             alpha = Math.min(255, (delta - 20) * 4);
           }
         } else {
-          // kind === "dark": keep bright pixels.
-          const maxCh = Math.max(r, g, b);
-          // Pixels darker than 40 → transparent (background).
-          // Everything else → aggressively ramped to opaque.
-          if (maxCh > 40) {
-            alpha = Math.min(255, (maxCh - 40) * 4);
+          // kind === "dark": keep WHITE/near-white pixels only.
+          // Use MIN channel — white=255, any saturated color (e.g. bright blue
+          // background rgb(30,78,164)) has a low min channel and gets dropped.
+          const minCh = Math.min(r, g, b);
+          if (minCh > 180) {
+            alpha = Math.min(255, (minCh - 180) * 6);
           }
         }
 
