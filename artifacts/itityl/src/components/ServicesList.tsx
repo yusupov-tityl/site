@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { easeOutExpo, fadeUp } from "@/lib/motion";
 
-type Service = { ru: string; en: string; gradient: string; video?: string };
+type Service = {
+  ru: string;
+  en: string;
+  gradient: string;
+  video?: string;
+  poster?: string;
+};
 
 const previewVariants = {
   initial: { opacity: 0, scale: 0.9, y: 20 },
@@ -13,9 +19,35 @@ const previewVariants = {
 
 export function ServicesList({ services }: { services: Service[] }) {
   const [active, setActive] = useState<number | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [prefetched, setPrefetched] = useState(false);
+
+  // When the section becomes visible, start warm-fetching all clips so
+  // the first hover doesn't have to wait for the network.
+  useEffect(() => {
+    if (prefetched) return;
+    const el = rootRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          services.forEach((s) => {
+            if (!s.video) return;
+            // Full fetch into HTTP cache (best effort, ignored if blocked).
+            fetch(s.video, { mode: "no-cors", cache: "force-cache" }).catch(() => {});
+          });
+          setPrefetched(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [services, prefetched]);
 
   return (
-    <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-0 border-t border-black/15">
+    <div ref={rootRef} className="relative grid grid-cols-1 lg:grid-cols-12 gap-0 border-t border-black/15">
       <div className="lg:col-span-8 flex flex-col">
         {services.map((service, index) => {
           const isActive = active === index;
@@ -93,11 +125,21 @@ export function ServicesList({ services }: { services: Service[] }) {
                 exit="exit"
                 className="absolute inset-0 overflow-hidden bg-black"
               >
+                {/* Poster shown instantly while video decodes */}
+                {services[active].poster && (
+                  <img
+                    src={services[active].poster}
+                    alt=""
+                    aria-hidden
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
                 {/* Video layer — plays under the "01 Consulting & strategy" label */}
                 {services[active].video && (
                   <video
                     key={services[active].video}
                     src={services[active].video}
+                    poster={services[active].poster}
                     autoPlay
                     muted
                     loop

@@ -105,36 +105,42 @@ const services = [
     en: "Consulting & Strategy",
     gradient: "linear-gradient(135deg, #1a1a1a 0%, #b86a1f 100%)",
     video: `${servicesVideoBase}s1.mp4`,
+    poster: `${servicesVideoBase}s1.jpg`,
   },
   {
     ru: "Разработка",
     en: "Custom AI Development",
     gradient: "linear-gradient(135deg, #2a1a0a 0%, #d97a1f 100%)",
     video: `${servicesVideoBase}s2.mp4`,
+    poster: `${servicesVideoBase}s2.jpg`,
   },
   {
     ru: "Сопровождение",
     en: "Support & Evolution",
     gradient: "linear-gradient(135deg, #0f0f1a 0%, #ff9933 100%)",
     video: `${servicesVideoBase}s3.mp4`,
+    poster: `${servicesVideoBase}s3.jpg`,
   },
   {
     ru: "Аналитика данных",
     en: "Applied Data Analytics",
     gradient: "linear-gradient(135deg, #1a1208 0%, #c4621a 100%)",
     video: `${servicesVideoBase}s4.mp4`,
+    poster: `${servicesVideoBase}s4.jpg`,
   },
   {
     ru: "Интеграция в системы",
     en: "Enterprise Integration",
     gradient: "linear-gradient(135deg, #0a0a0a 0%, #e08828 100%)",
     video: `${servicesVideoBase}s5.mp4`,
+    poster: `${servicesVideoBase}s5.jpg`,
   },
   {
     ru: "Обучение и аудит",
     en: "AI Audit & Training",
     gradient: "linear-gradient(135deg, #1f0f00 0%, #ffaa44 100%)",
     video: `${servicesVideoBase}s6.mp4`,
+    poster: `${servicesVideoBase}s6.jpg`,
   },
 ];
 
