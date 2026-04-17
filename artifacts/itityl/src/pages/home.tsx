@@ -422,7 +422,7 @@ export default function Home() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {[
                 { val: "10+", label: "Крупных проектов" },
-                { val: "40+", label: "Заказчиков" },
+                { val: "18+", label: "Заказчиков" },
                 { val: "8+", label: "Лет в ИИ" },
                 { val: "20+", label: "Экспертов" },
               ].map((s, i) => (
