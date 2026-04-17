@@ -1,101 +1,133 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { VolumeX } from "lucide-react";
 
 /**
- * Background ambience — no UI.
+ * Background music pill — SOUND ON / SOUND OFF.
  *
- * Browser policy ALWAYS blocks autoplay with sound on a fresh page
- * load. The workaround: start muted (allowed everywhere), then
- * attempt an unmute on every conceivable user event. The first
- * event that the browser recognizes as a user activation will
- * succeed; subsequent attempts are no-ops thanks to the `done`
- * guard.
+ * Starts muted-autoplay on mount; the EntryGate click provides a
+ * real user activation so as soon as the gate lifts the audio is
+ * unmuted and playing. The pill lets the visitor toggle afterwards.
  */
+
+function EqBars({ active }: { active: boolean }) {
+  // 4 bars, staggered animation — only visible when sound is on.
+  const delays = [0, 0.15, 0.3, 0.45];
+  return (
+    <span
+      aria-hidden
+      className="flex items-end gap-[3px] h-4 w-5"
+      style={{ visibility: active ? "visible" : "hidden" }}
+    >
+      {delays.map((d, i) => (
+        <span
+          key={i}
+          className="w-[3px] bg-amber-300 rounded-[1px]"
+          style={{
+            animation: `bg-music-bar 0.9s ease-in-out ${d}s infinite`,
+            transformOrigin: "bottom",
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function BgMusic({ src }: { src: string }) {
   const ref = useRef<HTMLAudioElement>(null);
+  const [soundOn, setSoundOn] = useState(true); // default-on visual
+  const userChoseRef = useRef(false);
 
+  // 1) Muted autoplay on mount.
   useEffect(() => {
     const a = ref.current;
     if (!a) return;
     a.volume = 0.35;
     a.muted = true;
-    a.loop = true;
-    a.preload = "auto";
-
-    // Kick off the muted playback as early as possible.
     a.play().catch(() => {});
+  }, []);
 
+  // 2) First real user activation (EntryGate click covers it) unmutes.
+  useEffect(() => {
     let done = false;
     const unmute = () => {
-      if (done) return;
+      if (done || userChoseRef.current) return;
+      const a = ref.current;
+      if (!a) return;
+      done = true;
       a.muted = false;
-      const p = a.play();
-      if (p && typeof p.then === "function") {
-        p.then(() => {
-          done = true;
-          cleanup();
-        }).catch(() => {
-          // Browser rejected — re-mute and wait for a stronger event.
-          a.muted = true;
-        });
-      } else {
-        done = true;
-        cleanup();
-      }
+      a.play()
+        .then(() => setSoundOn(true))
+        .catch(() => {});
+      cleanup();
     };
-
-    // Cast a wide net. Activation-granting per spec:
-    //   keydown, pointerdown/up, touchend, mousedown, click
-    // Non-activation but harmless to listen on — some browsers
-    // (older Chrome, Firefox on Linux) may still treat them as
-    // gestures:
-    //   mousemove, pointermove, touchstart, touchmove, wheel,
-    //   scroll, focus, keyup, contextmenu
     const events = [
       "pointerdown",
       "pointerup",
-      "pointermove",
-      "touchstart",
-      "touchmove",
       "touchend",
       "mousedown",
-      "mouseup",
-      "mousemove",
       "click",
-      "dblclick",
-      "contextmenu",
-      "wheel",
-      "scroll",
       "keydown",
-      "keyup",
-      "keypress",
-      "focus",
-      "focusin",
     ] as const;
-
-    const opts: AddEventListenerOptions = { capture: true, passive: true };
     const cleanup = () => {
-      for (const ev of events) {
-        document.removeEventListener(ev, unmute, true);
-        window.removeEventListener(ev, unmute, true);
-      }
+      for (const e of events) document.removeEventListener(e, unmute, true);
     };
-    for (const ev of events) {
-      document.addEventListener(ev, unmute, opts);
-      window.addEventListener(ev, unmute, opts);
+    for (const e of events) {
+      document.addEventListener(e, unmute, { capture: true, once: true });
     }
-    // Also handle the case where the page becomes visible later
-    // (e.g. user switched tabs and came back).
-    const onVisible = () => {
-      if (document.visibilityState === "visible" && !done) {
-        a.play().catch(() => {});
-      }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      cleanup();
-      document.removeEventListener("visibilitychange", onVisible);
-    };
+    return cleanup;
   }, []);
 
-  return <audio ref={ref} src={src} autoPlay muted loop preload="auto" />;
+  const toggle = () => {
+    const a = ref.current;
+    if (!a) return;
+    userChoseRef.current = true;
+    const next = !soundOn;
+    setSoundOn(next);
+    a.muted = !next;
+    if (next) a.play().catch(() => {});
+  };
+
+  return (
+    <>
+      <audio ref={ref} src={src} autoPlay muted loop preload="auto" />
+      <style>{`
+        @keyframes bg-music-bar {
+          0%, 100% { transform: scaleY(0.3); }
+          50% { transform: scaleY(1); }
+        }
+        .bg-music-pill { height: 44px; }
+        @media (min-width: 768px) {
+          .bg-music-pill { height: 50px; }
+        }
+      `}</style>
+      <button
+        type="button"
+        aria-label={soundOn ? "Sound off" : "Sound on"}
+        title={soundOn ? "Sound off" : "Sound on"}
+        onClick={toggle}
+        data-cursor="link"
+        className={`bg-music-pill fixed bottom-6 right-6 z-[90] pl-4 pr-5 flex items-center gap-3
+          rounded-full border backdrop-blur-md transition-all duration-300
+          ${
+            soundOn
+              ? "bg-black/70 border-amber-300/60 shadow-[0_0_24px_rgba(255,180,80,0.25)]"
+              : "bg-black/60 border-white/25 hover:border-white/50"
+          }`}
+      >
+        {soundOn ? (
+          <EqBars active />
+        ) : (
+          <VolumeX className="w-5 h-5 text-white/80" />
+        )}
+        <span
+          className={`flex flex-col items-start leading-none font-bold uppercase tracking-[0.18em] text-[10px] md:text-[11px] transition-colors duration-300 ${
+            soundOn ? "text-amber-300" : "text-white/70"
+          }`}
+        >
+          <span>Sound</span>
+          <span className="mt-0.5">{soundOn ? "On" : "Off"}</span>
+        </span>
+      </button>
+    </>
+  );
 }
