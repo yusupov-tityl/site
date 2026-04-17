@@ -77,17 +77,9 @@ export function BgMusic({ src }: { src: string }) {
         title={wantsSound ? "Выключить звук" : "Включить звук"}
         onClick={toggle}
         data-cursor="link"
-        className={`fixed bottom-6 right-6 z-[90] w-12 h-12 md:w-14 md:h-14 rounded-full border backdrop-blur-md flex items-center justify-center transition-all duration-300 ${
-          wantsSound
-            ? "border-amber-300/60 bg-black/60 text-amber-300"
-            : "border-white/30 bg-black/60 text-white/90 hover:text-white hover:border-amber-300/60"
-        }`}
+        className="fixed bottom-6 right-6 z-[90] w-11 h-11 md:w-12 md:h-12 rounded-full border border-white/25 bg-black/50 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white hover:border-amber-300/60 hover:bg-black/70 transition-colors duration-300"
       >
-        {wantsSound ? (
-          <Volume2 className="relative w-5 h-5 md:w-6 md:h-6" />
-        ) : (
-          <VolumeX className="relative w-5 h-5 md:w-6 md:h-6" />
-        )}
+        {wantsSound ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
       </button>
     </>
   );
