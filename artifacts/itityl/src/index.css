@@ -245,14 +245,22 @@ select:-webkit-autofill {
   }
 }
 
-/* "Why AI" card icons — white by default, tinted to CTA amber on hover. */
+/* "Why AI" card icons — render PNG as a solid-color mask.
+   White by default, tinted to CTA amber-400 on card hover. */
 .why-icon {
-  filter: none;
-  transition: filter 500ms ease;
+  background-color: #ffffff;
+  -webkit-mask-image: var(--icon-url);
+          mask-image: var(--icon-url);
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+          mask-position: center;
+  -webkit-mask-size: contain;
+          mask-size: contain;
+  transition: background-color 500ms ease;
 }
-/* Tints the white PNG to amber-400 (#fbbf24, same as CTA button). */
 .group:hover .why-icon {
-  filter: brightness(0) saturate(100%) invert(74%) sepia(54%) saturate(2476%) hue-rotate(358deg) brightness(101%) contrast(98%);
+  background-color: #fbbf24; /* amber-400, same as CTA */
 }
 
 /* Blinking cursor for logo — mimics terminal cursor */

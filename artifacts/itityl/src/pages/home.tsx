@@ -489,15 +489,11 @@ export default function Home() {
                 data-cursor="link"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-500/0 to-amber-500/0 group-hover:from-amber-500/8 transition-all duration-700 pointer-events-none" />
-                <div className="relative w-20 h-20 flex items-center justify-center">
-                  <img
-                    src={item.icon}
-                    alt=""
-                    aria-hidden
-                    draggable={false}
-                    className="w-full h-full object-contain select-none why-icon"
-                  />
-                </div>
+                <div
+                  aria-hidden
+                  className="relative w-20 h-20 why-icon"
+                  style={{ ["--icon-url" as string]: `url(${item.icon})` }}
+                />
                 <div className="relative mt-auto">
                   <h3 className="text-lg md:text-xl font-heading font-extrabold uppercase tracking-tight mb-3 group-hover:text-amber-300 transition-colors duration-500">
                     {item.title}
