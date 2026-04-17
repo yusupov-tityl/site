@@ -229,12 +229,9 @@ export function EntryGate({ onEnter }: Props) {
                   <span className="relative text-[10px] md:text-xs uppercase tracking-[0.4em] text-amber-300/80 font-bold mb-2">
                     Enter
                   </span>
-                  <span className="relative text-2xl md:text-3xl font-heading font-extrabold uppercase tracking-tight text-white">
-                    Войти
-                  </span>
-                  <span className="relative mt-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.3em] text-white/50 group-hover:text-amber-300 transition-colors duration-500">
-                    <span>со звуком</span>
-                    <ArrowRight className="w-3 h-3 transition-transform duration-500 group-hover:translate-x-0.5" />
+                  <span className="relative flex items-center gap-2 text-2xl md:text-3xl font-heading font-extrabold uppercase tracking-tight text-white">
+                    <span>Войти</span>
+                    <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-amber-300 transition-transform duration-500 group-hover:translate-x-1" />
                   </span>
                 </span>
               </motion.button>
@@ -272,7 +269,7 @@ export function EntryGate({ onEnter }: Props) {
                 transition={{ duration: 0.6, delay: 0.4, ease: easeOutExpo }}
                 className="absolute bottom-10 left-0 right-0 text-center text-[10px] uppercase tracking-[0.4em] text-white/40 font-bold z-10"
               >
-                Нажмите, чтобы открыть сайт со звуком
+                Нажмите, чтобы открыть сайт
               </motion.div>
             )}
           </AnimatePresence>
