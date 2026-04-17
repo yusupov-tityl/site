@@ -934,17 +934,13 @@ export default function Home() {
                 className="group flex flex-col"
                 data-cursor="link"
               >
-                <div className="aspect-[4/3] bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 group-hover:border-amber-300/40 mb-6 relative overflow-hidden flex items-center justify-center transition-colors duration-500">
+                <div className="aspect-[4/3] bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 group-hover:border-amber-300/40 mb-6 relative overflow-hidden transition-colors duration-500">
                   <img
                     src={a.image}
                     alt={a.title}
                     loading="lazy"
-                    className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-105 transition-all duration-700"
+                    className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/30" />
-                  <span className="relative text-amber-300/40 group-hover:text-amber-300/70 font-heading text-[180px] uppercase font-extrabold leading-none transition-colors duration-700 drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)]">
-                    0{i + 1}
-                  </span>
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-tr from-amber-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"
                   />
