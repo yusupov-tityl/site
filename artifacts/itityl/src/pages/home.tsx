@@ -98,36 +98,43 @@ const stack = [
   "React",
 ];
 
+const servicesVideoBase = `${import.meta.env.BASE_URL}services/`;
 const services = [
   {
     ru: "ИИ Консалтинг",
     en: "Consulting & Strategy",
     gradient: "linear-gradient(135deg, #1a1a1a 0%, #b86a1f 100%)",
+    video: `${servicesVideoBase}s1.mp4`,
   },
   {
     ru: "Разработка",
     en: "Custom AI Development",
     gradient: "linear-gradient(135deg, #2a1a0a 0%, #d97a1f 100%)",
+    video: `${servicesVideoBase}s2.mp4`,
   },
   {
     ru: "Сопровождение",
     en: "Support & Evolution",
     gradient: "linear-gradient(135deg, #0f0f1a 0%, #ff9933 100%)",
+    video: `${servicesVideoBase}s3.mp4`,
   },
   {
     ru: "Аналитика данных",
     en: "Applied Data Analytics",
     gradient: "linear-gradient(135deg, #1a1208 0%, #c4621a 100%)",
+    video: `${servicesVideoBase}s4.mp4`,
   },
   {
     ru: "Интеграция в системы",
     en: "Enterprise Integration",
     gradient: "linear-gradient(135deg, #0a0a0a 0%, #e08828 100%)",
+    video: `${servicesVideoBase}s5.mp4`,
   },
   {
     ru: "Обучение и аудит",
     en: "AI Audit & Training",
     gradient: "linear-gradient(135deg, #1f0f00 0%, #ffaa44 100%)",
+    video: `${servicesVideoBase}s6.mp4`,
   },
 ];
 

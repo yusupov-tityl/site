@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { easeOutExpo, fadeUp } from "@/lib/motion";
 
-type Service = { ru: string; en: string; gradient: string };
+type Service = { ru: string; en: string; gradient: string; video?: string };
 
 const previewVariants = {
   initial: { opacity: 0, scale: 0.9, y: 20 },
@@ -91,21 +91,45 @@ export function ServicesList({ services }: { services: Service[] }) {
                 initial="initial"
                 animate="animate"
                 exit="exit"
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ background: services[active].gradient }}
+                className="absolute inset-0 overflow-hidden bg-black"
               >
-                <div className="absolute inset-0 opacity-20"
+                {/* Video layer — plays under the "01 Consulting & strategy" label */}
+                {services[active].video && (
+                  <video
+                    key={services[active].video}
+                    src={services[active].video}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
+                {/* Existing gradient — now semi-transparent so video shows through */}
+                <div
+                  className="absolute inset-0 opacity-40 mix-blend-multiply"
+                  style={{ background: services[active].gradient }}
+                />
+                {/* Noise texture kept, but lighter */}
+                <div
+                  className="absolute inset-0 opacity-10"
                   style={{
                     backgroundImage:
                       "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>\")",
                   }}
                 />
-                <div className="relative text-center px-8">
-                  <div className="text-[7rem] leading-none font-heading font-extrabold text-white mix-blend-overlay">
-                    {String(active + 1).padStart(2, "0")}
-                  </div>
-                  <div className="mt-4 text-white text-xl font-heading font-extrabold uppercase tracking-tight">
-                    {services[active].en}
+                {/* Subtle dark gradient for text legibility */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/30" />
+                {/* "01 Consulting & Strategy" label stays on top */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative text-center px-8">
+                    <div className="text-[7rem] leading-none font-heading font-extrabold text-white/90 drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]">
+                      {String(active + 1).padStart(2, "0")}
+                    </div>
+                    <div className="mt-4 text-white text-xl font-heading font-extrabold uppercase tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">
+                      {services[active].en}
+                    </div>
                   </div>
                 </div>
               </motion.div>
