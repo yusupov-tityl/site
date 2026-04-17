@@ -83,8 +83,11 @@ export function BgMusic({ src }: { src: string }) {
       const ctx = new Ctx();
       const source = ctx.createMediaElementSource(a);
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 128;
-      analyser.smoothingTimeConstant = 0.75;
+      // Bigger fftSize + lower smoothing → snappier per-frame deltas, so
+      // the three bars actually react on kick/snare hits instead of
+      // coasting on a slowly-averaged envelope.
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.5;
       source.connect(analyser);
       analyser.connect(ctx.destination);
       ctxRef.current = ctx;
@@ -108,22 +111,51 @@ export function BgMusic({ src }: { src: string }) {
     if (!analyser) return;
     if (loopRunningRef.current) return; // already ticking
     const buf = new Uint8Array(analyser.frequencyBinCount);
-    // Pick three spread-out bins for low / mid / high.
+    // Average a small window around each target bin so one noisy sample
+    // doesn't dominate — but widen the spread (bass / low-mid / high-mid)
+    // so the three bars capture genuinely different energy regions.
     const bins = analyser.frequencyBinCount;
-    const idx = [
-      Math.floor(bins * 0.06),
-      Math.floor(bins * 0.18),
-      Math.floor(bins * 0.42),
+    const bands = [
+      { center: 0.04, width: 3 }, // kick / sub bass
+      { center: 0.18, width: 4 }, // vocal / mids
+      { center: 0.55, width: 6 }, // hats / highs
     ];
+    // Per-bar idle oscillator phases — so even when the track is quiet
+    // (intro / outro / user drags volume very low) the bars keep a
+    // gentle wave of life rather than flat-lining at the floor.
+    const phase = [0, 2.1, 4.3];
+    const speed = [5.2, 6.7, 8.1];
+    const t0 = performance.now();
     loopRunningRef.current = true;
     const tick = () => {
       if (!loopRunningRef.current) return;
       analyser.getByteFrequencyData(buf);
+      const t = (performance.now() - t0) / 1000;
       for (let i = 0; i < NUM_BARS; i++) {
-        const v = buf[idx[i]] / 255; // 0..1
-        // Amplify low activity so silent passages still wiggle a bit.
-        const eased = Math.min(1, Math.pow(v, 0.85) * 1.35);
-        const scale = 0.25 + eased * 0.75; // floor 25%
+        // Averaged energy for this band — 0..1
+        const band = bands[i];
+        const centerIdx = Math.floor(bins * band.center);
+        const half = band.width;
+        let sum = 0;
+        let count = 0;
+        for (let k = -half; k <= half; k++) {
+          const j = centerIdx + k;
+          if (j >= 0 && j < bins) {
+            sum += buf[j];
+            count++;
+          }
+        }
+        const avg = count > 0 ? sum / count / 255 : 0;
+        // Aggressive gamma — low FFT values pop up, so quiet passages
+        // still produce visible bar movement instead of sitting at floor.
+        const fft = Math.min(1, Math.pow(avg, 0.5) * 1.75);
+        // Idle sine wave in [0..1], independent per bar, always running.
+        const osc = 0.5 + 0.5 * Math.sin(t * speed[i] + phase[i]);
+        // Use FFT energy as the headline and mix the oscillator in so
+        // the bars never stall — bigger FFT wins over osc, but osc
+        // provides a lively baseline.
+        const mixed = Math.max(fft, osc * 0.55) + osc * 0.12;
+        const scale = 0.15 + Math.min(0.85, mixed) * 0.85;
         const el = barsRef.current[i];
         if (el) el.style.transform = `scaleY(${scale.toFixed(3)})`;
       }
@@ -378,7 +410,7 @@ export function BgMusic({ src }: { src: string }) {
                     barsRef.current[i] = el;
                   }}
                   className="w-[3px] h-full bg-amber-300 rounded-[1px] origin-bottom"
-                  style={{ transform: "scaleY(0.3)", transition: "transform 60ms linear" }}
+                  style={{ transform: "scaleY(0.3)", transition: "transform 35ms linear" }}
                 />
               ))}
             </span>
