@@ -852,7 +852,7 @@ export default function Home() {
         <div className="max-w-[1600px] mx-auto">
           <SplitText
             as="p"
-            text="«Мы строим решения, которым можно доверять. Данные, на которые можно положиться. ИИ, которому можно доверять.»"
+            text="«Мы проектируем решения, данные и искусственный интеллект так, чтобы на них можно было положиться — в любом масштабе и в любой среде.»"
             stagger={0.04}
             className="text-3xl md:text-5xl lg:text-6xl font-heading font-light leading-[1.15] max-w-5xl mb-14"
           />
