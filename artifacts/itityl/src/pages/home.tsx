@@ -191,22 +191,27 @@ const team: { name: string; role: string; video?: string }[] = [
   { name: "Максим", role: "Главный разработчик", video: maximVideo },
 ];
 
+const audienceImgBase = `${import.meta.env.BASE_URL}audiences/`;
 const audiences = [
   {
     title: "Крупный бизнес",
     desc: "Работаем с крупными компаниями со сложными процессами, большим объёмом данных, документов и корпоративных систем. Помогаем находить и внедрять прикладные ИИ-решения в реальную рабочую среду.",
+    image: `${audienceImgBase}a1.png`,
   },
   {
     title: "B2G и госсектор",
     desc: "Помогаем находить и внедрять ИИ-сценарии в среде с высокой регламентированностью, существенной документной нагрузкой и повышенными требованиями к устойчивости процессов.",
+    image: `${audienceImgBase}a2.png`,
   },
   {
     title: "Функциональные и операционные подразделения",
     desc: "Работаем с задачами, где важно сократить ручную нагрузку, ускорить обработку информации, повысить доступность знаний и улучшить качество исполнения процессов.",
+    image: `${audienceImgBase}a3.png`,
   },
   {
     title: "Организации, развивающие цифровую трансформацию",
     desc: "Подключаемся там, где нужно перейти от интереса к технологии к понятному набору прикладных инициатив, пилотов и решений с реальной перспективой внедрения.",
+    image: `${audienceImgBase}a4.png`,
   },
 ];
 
@@ -922,7 +927,14 @@ export default function Home() {
                 data-cursor="link"
               >
                 <div className="aspect-[4/3] bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10 group-hover:border-amber-300/40 mb-6 relative overflow-hidden flex items-center justify-center transition-colors duration-500">
-                  <span className="text-amber-300/15 group-hover:text-amber-300/40 font-heading text-[180px] uppercase font-extrabold leading-none transition-colors duration-700">
+                  <img
+                    src={a.image}
+                    alt={a.title}
+                    loading="lazy"
+                    className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-105 transition-all duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/30" />
+                  <span className="relative text-amber-300/40 group-hover:text-amber-300/70 font-heading text-[180px] uppercase font-extrabold leading-none transition-colors duration-700 drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)]">
                     0{i + 1}
                   </span>
                   <motion.div
