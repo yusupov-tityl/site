@@ -175,7 +175,10 @@ export function BgMusic({ src }: { src: string }) {
 
   return (
     <>
-      <audio ref={audioRef} src={src} autoPlay muted loop preload="auto" />
+      {/* preload="metadata" — fetch only ~10KB of headers on mount instead
+          of the full 2MB mp3; the rest streams in once the user actually
+          unmutes via the EntryGate click. */}
+      <audio ref={audioRef} src={src} autoPlay muted loop preload="metadata" />
       <style>{`
         .bg-music-pill { height: 44px; }
         @media (min-width: 768px) {

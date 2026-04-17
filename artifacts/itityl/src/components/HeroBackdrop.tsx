@@ -101,14 +101,18 @@ export function HeroBackdrop() {
       className="absolute inset-0 -z-0 overflow-hidden pointer-events-none"
       style={{ y, scale, opacity }}
     >
-      {/* Video background */}
+      {/* Video background.
+          `preload="metadata"` + poster frame lets first paint finish
+          instantly without blocking on the 4MB clip; the video starts
+          decoding on its own once enough data arrives. Visual identical. */}
       <video
         ref={videoRef}
         autoPlay
         muted
         loop
         playsInline
-        preload="auto"
+        preload="metadata"
+        poster={`${import.meta.env.BASE_URL}hero-bg.jpg`}
         className="absolute inset-0 w-full h-full object-cover"
         src={`${import.meta.env.BASE_URL}hero-bg.mp4`}
       />

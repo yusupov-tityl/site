@@ -116,7 +116,10 @@ export function ServicesList({ services }: { services: Service[] }) {
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                 )}
-                {/* Video layer — plays under the "01 Consulting & strategy" label */}
+                {/* Video layer — plays under the "01 Consulting & strategy" label.
+                    preload="metadata" — the <video> element is only mounted when
+                    the service card is hovered, so we don't need the whole clip
+                    buffered in advance; stream on demand. Poster covers the gap. */}
                 {services[active].video && (
                   <video
                     key={services[active].video}
@@ -126,7 +129,7 @@ export function ServicesList({ services }: { services: Service[] }) {
                     muted
                     loop
                     playsInline
-                    preload="auto"
+                    preload="metadata"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                 )}
