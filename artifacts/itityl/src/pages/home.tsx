@@ -6,6 +6,7 @@ import iconData from "@assets/cap-data_1776417413421.png";
 import iconTraining from "@assets/cap-training_1776417419081.png";
 import iconStrategy from "@assets/cap-strategy_1776417425816.png";
 import pavelVideo from "@assets/hf_20260417_090223_ec2b49b0-2307-4bf5-8c78-dd43811a0bab_1776426104695.mp4";
+import olegVideo from "@assets/hf_20260417_094002_9f9918df-7e22-4a8c-bcad-f0ca7591c13d_1776426311546.mp4";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { fadeUp, stagger, lineDraw, easeOutExpo } from "@/lib/motion";
 import { SplitText } from "@/components/SplitText";
@@ -155,7 +156,7 @@ const products = [
 
 const team: { name: string; role: string; video?: string }[] = [
   { name: "Павел", role: "CEO", video: pavelVideo },
-  { name: "Мария", role: "Руководитель ИИ-проектов" },
+  { name: "Олег", role: "Руководитель ИИ-проектов", video: olegVideo },
   { name: "Дмитрий", role: "Главный разработчик" },
 ];
 
