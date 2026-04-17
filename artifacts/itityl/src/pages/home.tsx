@@ -17,6 +17,7 @@ import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { ServicesList } from "@/components/ServicesList";
 import { MarqueeRow } from "@/components/MarqueeRow";
 import { ContactForm } from "@/components/ContactForm";
+import { BgMusic } from "@/components/BgMusic";
 import { useIntro } from "@/lib/intro-context";
 
 const whyAI = [
@@ -247,6 +248,7 @@ export default function Home() {
         className="fixed top-0 left-0 right-0 h-[2px] bg-amber-400/80 origin-left z-[100]"
         style={{ scaleX: scrollYProgress }}
       />
+      <BgMusic src={`${import.meta.env.BASE_URL}bg-music.mp3`} />
 
       {/* ── NAV ── */}
       <nav className="group fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-10 py-5 border-b border-white/5 hover:border-white/15 bg-black/15 backdrop-blur-[3px] hover:bg-black/70 hover:backdrop-blur-md transition-[background-color,backdrop-filter,border-color] duration-300">
