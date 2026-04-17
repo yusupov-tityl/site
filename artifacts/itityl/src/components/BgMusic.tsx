@@ -107,55 +107,71 @@ export function BgMusic({ src }: { src: string }) {
   // cases anyway, so we should not burn 60 FPS of CPU reading the FFT.
   const loopRunningRef = useRef(false);
   const runLoop = () => {
-    const analyser = analyserRef.current;
-    if (!analyser) return;
     if (loopRunningRef.current) return; // already ticking
-    const buf = new Uint8Array(analyser.frequencyBinCount);
+    const analyser = analyserRef.current;
+    // Sized lazily so we don't blow up when analyser is null.
+    const buf = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
     // Average a small window around each target bin so one noisy sample
     // doesn't dominate — but widen the spread (bass / low-mid / high-mid)
     // so the three bars capture genuinely different energy regions.
-    const bins = analyser.frequencyBinCount;
+    const bins = analyser?.frequencyBinCount ?? 0;
     const bands = [
       { center: 0.04, width: 3 }, // kick / sub bass
       { center: 0.18, width: 4 }, // vocal / mids
       { center: 0.55, width: 6 }, // hats / highs
     ];
-    // Per-bar idle oscillator phases — so even when the track is quiet
-    // (intro / outro / user drags volume very low) the bars keep a
-    // gentle wave of life rather than flat-lining at the floor.
-    const phase = [0, 2.1, 4.3];
-    const speed = [5.2, 6.7, 8.1];
+    // Per-bar "runner" oscillators — two sine waves at different speeds
+    // per bar, summed and normalised. Produces a continuous up-and-down
+    // run over the full height range (0.05..1.0) rather than a small
+    // wiggle near the top. The three bars use different periods + phase
+    // offsets so they dance out of step, like a real EQ visualiser.
+    const oscA = { speed: [4.1, 5.3, 6.7], phase: [0, 1.7, 3.4] };
+    const oscB = { speed: [7.3, 9.1, 10.9], phase: [0.8, 2.6, 4.2] };
     const t0 = performance.now();
     loopRunningRef.current = true;
     const tick = () => {
       if (!loopRunningRef.current) return;
-      analyser.getByteFrequencyData(buf);
+      // Analyser can show up mid-loop (user clicks EntryGate → ensureAnalyser
+      // wires it up after the loop already started on mount). Read on each
+      // tick and fall through to pure-oscillator mode when it's not ready.
+      const live = analyserRef.current;
+      if (live && buf) live.getByteFrequencyData(buf);
       const t = (performance.now() - t0) / 1000;
       for (let i = 0; i < NUM_BARS; i++) {
-        // Averaged energy for this band — 0..1
-        const band = bands[i];
-        const centerIdx = Math.floor(bins * band.center);
-        const half = band.width;
-        let sum = 0;
-        let count = 0;
-        for (let k = -half; k <= half; k++) {
-          const j = centerIdx + k;
-          if (j >= 0 && j < bins) {
-            sum += buf[j];
-            count++;
+        // Averaged energy for this band — 0..1 (0 when no analyser yet).
+        let avg = 0;
+        if (live && buf && bins > 0) {
+          const band = bands[i];
+          const centerIdx = Math.floor(bins * band.center);
+          const half = band.width;
+          let sum = 0;
+          let count = 0;
+          for (let k = -half; k <= half; k++) {
+            const j = centerIdx + k;
+            if (j >= 0 && j < bins) {
+              sum += buf[j];
+              count++;
+            }
           }
+          avg = count > 0 ? sum / count / 255 : 0;
         }
-        const avg = count > 0 ? sum / count / 255 : 0;
         // Aggressive gamma — low FFT values pop up, so quiet passages
         // still produce visible bar movement instead of sitting at floor.
         const fft = Math.min(1, Math.pow(avg, 0.5) * 1.75);
-        // Idle sine wave in [0..1], independent per bar, always running.
-        const osc = 0.5 + 0.5 * Math.sin(t * speed[i] + phase[i]);
-        // Use FFT energy as the headline and mix the oscillator in so
-        // the bars never stall — bigger FFT wins over osc, but osc
-        // provides a lively baseline.
-        const mixed = Math.max(fft, osc * 0.55) + osc * 0.12;
-        const scale = 0.15 + Math.min(0.85, mixed) * 0.85;
+        // Two summed sines → fuller travel across the bar's height. Kept
+        // in 0..1 via /2 normalisation; idle motion alone now covers
+        // roughly 5%..95% of the bar, so bars visibly run bottom↔top.
+        const sA = 0.5 + 0.5 * Math.sin(t * oscA.speed[i] + oscA.phase[i]);
+        const sB = 0.5 + 0.5 * Math.sin(t * oscB.speed[i] + oscB.phase[i]);
+        const runner = (sA + sB) / 2;
+        // Runner does the main bottom↔top travel (full 0.05..0.95 range),
+        // FFT adds a small extra spike on beats. Critical point: runner
+        // is ADDITIVE, not max'd — otherwise a consistently-loud track
+        // would saturate fft near 1 and keep the bar pinned near the
+        // top with only tiny wiggle. Now the bar visibly runs top↔bottom
+        // throughout the song and jumps a bit higher on kicks.
+        const spike = fft * 0.3;
+        const scale = Math.min(1, 0.05 + runner * 0.9 + spike);
         const el = barsRef.current[i];
         if (el) el.style.transform = `scaleY(${scale.toFixed(3)})`;
       }
@@ -169,8 +185,13 @@ export function BgMusic({ src }: { src: string }) {
     cancelAnimationFrame(rafRef.current);
   };
 
-  // Pause/resume the FFT loop when the tab visibility changes.
+  // Pause/resume the bar animation loop when the tab visibility changes.
+  // Also kick the loop off whenever soundOn flips true — this ensures
+  // bars start "running" (oscillator-driven) immediately while we wait
+  // for the first user gesture to wire up the analyser; once it wires
+  // up, the same loop transparently picks up the live FFT data.
   useEffect(() => {
+    if (soundOn && !document.hidden) runLoop();
     const onVis = () => {
       if (document.hidden) {
         stopLoop();
