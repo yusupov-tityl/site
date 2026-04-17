@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { easeOutExpo, fadeUp } from "@/lib/motion";
@@ -20,31 +20,13 @@ const previewVariants = {
 export function ServicesList({ services }: { services: Service[] }) {
   const [active, setActive] = useState<number | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const [prefetched, setPrefetched] = useState(false);
 
-  // When the section becomes visible, start warm-fetching all clips so
-  // the first hover doesn't have to wait for the network.
-  useEffect(() => {
-    if (prefetched) return;
-    const el = rootRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          services.forEach((s) => {
-            if (!s.video) return;
-            // Full fetch into HTTP cache (best effort, ignored if blocked).
-            fetch(s.video, { mode: "no-cors", cache: "force-cache" }).catch(() => {});
-          });
-          setPrefetched(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: "200px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [services, prefetched]);
+  // NOTE: we intentionally do NOT mass-fetch every service video when the
+  // section scrolls into view. Firing 6 parallel full-video downloads was
+  // saturating the network right in the middle of the scroll and causing
+  // perceived jank. The first hover uses the poster image instantly while
+  // the browser streams the small (<1MB) clip on demand — that is fast
+  // enough and keeps the scroll smooth.
 
   return (
     <div ref={rootRef} className="relative grid grid-cols-1 lg:grid-cols-12 gap-0 border-t border-black/15">

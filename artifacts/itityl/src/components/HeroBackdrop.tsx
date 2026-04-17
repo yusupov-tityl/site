@@ -35,6 +35,14 @@ export function HeroBackdrop() {
     const blob1 = el.querySelector<HTMLElement>("[data-blob='1']");
     const blob2 = el.querySelector<HTMLElement>("[data-blob='2']");
     let mx = 0, my = 0, cx = 0, cy = 0;
+    // Only run the rAF loop when the hero is actually in view AND the tab
+    // is visible. When the user scrolls past the hero or switches away the
+    // blobs hold their last position — which is invisible anyway — and we
+    // stop eating CPU.
+    let onScreen = true;
+    let visible = !document.hidden;
+    let running = false;
+
     const move = (e: MouseEvent) => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -48,10 +56,40 @@ export function HeroBackdrop() {
       if (blob2) blob2.style.transform = `translate3d(${cx * -60}px, ${cy * -50}px, 0)`;
       raf = requestAnimationFrame(tick);
     };
+    const start = () => {
+      if (running) return;
+      running = true;
+      raf = requestAnimationFrame(tick);
+    };
+    const stop = () => {
+      if (!running) return;
+      running = false;
+      cancelAnimationFrame(raf);
+    };
+    const sync = () => {
+      if (onScreen && visible) start();
+      else stop();
+    };
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        onScreen = entry.isIntersecting;
+        sync();
+      },
+      { threshold: 0 },
+    );
+    io.observe(el);
+    const onVis = () => {
+      visible = !document.hidden;
+      sync();
+    };
+    document.addEventListener("visibilitychange", onVis);
     window.addEventListener("mousemove", move, { passive: true });
-    raf = requestAnimationFrame(tick);
+    sync();
     return () => {
       window.removeEventListener("mousemove", move);
+      document.removeEventListener("visibilitychange", onVis);
+      io.disconnect();
       cancelAnimationFrame(raf);
     };
   }, []);

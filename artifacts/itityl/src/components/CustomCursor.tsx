@@ -36,27 +36,45 @@ export function CustomCursor() {
       });
     };
 
+    // Keep local copies of the current cursor state so we can skip calls
+    // to setState whenever the mouse moves across elements that don't
+    // change the computed state. This avoids a full React re-render of
+    // the cursor tree (two <motion.div> springs) on every hovered node.
+    let curState: CursorState = "default";
+    let curLabel = "";
+    let curTheme: Theme = "dark";
+    const applyState = (next: CursorState, nextLabel: string, nextTheme: Theme) => {
+      if (next !== curState) {
+        curState = next;
+        setState(next);
+      }
+      if (nextLabel !== curLabel) {
+        curLabel = nextLabel;
+        setLabel(nextLabel);
+      }
+      if (nextTheme !== curTheme) {
+        curTheme = nextTheme;
+        setTheme(nextTheme);
+      }
+    };
+
     const over = (e: MouseEvent) => {
       const t = e.target as HTMLElement;
-      setTheme(resolveTheme(t));
+      const nextTheme = resolveTheme(t);
 
       const inter = t.closest("a, button, [data-cursor]");
       if (!inter) {
-        setState("default");
-        setLabel("");
+        applyState("default", "", nextTheme);
         return;
       }
       const cursor = inter.getAttribute("data-cursor");
       const cursorLabel = inter.getAttribute("data-cursor-label") || "";
       if (cursor === "view") {
-        setState("view");
-        setLabel(cursorLabel || "View");
+        applyState("view", cursorLabel || "View", nextTheme);
       } else if (cursor === "drag") {
-        setState("drag");
-        setLabel(cursorLabel || "Drag");
+        applyState("drag", cursorLabel || "Drag", nextTheme);
       } else {
-        setState("link");
-        setLabel(cursorLabel);
+        applyState("link", cursorLabel, nextTheme);
       }
     };
 

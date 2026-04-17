@@ -65,10 +65,14 @@ export function BgMusic({ src }: { src: string }) {
     }
   };
 
-  // Drive bar heights from the FFT.
+  // Drive bar heights from the FFT. We stop the rAF completely whenever
+  // the audio is muted or the tab is hidden — bars are invisible in those
+  // cases anyway, so we should not burn 60 FPS of CPU reading the FFT.
+  const loopRunningRef = useRef(false);
   const runLoop = () => {
     const analyser = analyserRef.current;
     if (!analyser) return;
+    if (loopRunningRef.current) return; // already ticking
     const buf = new Uint8Array(analyser.frequencyBinCount);
     // Pick three spread-out bins for low / mid / high.
     const bins = analyser.frequencyBinCount;
@@ -77,7 +81,9 @@ export function BgMusic({ src }: { src: string }) {
       Math.floor(bins * 0.18),
       Math.floor(bins * 0.42),
     ];
+    loopRunningRef.current = true;
     const tick = () => {
+      if (!loopRunningRef.current) return;
       analyser.getByteFrequencyData(buf);
       for (let i = 0; i < NUM_BARS; i++) {
         const v = buf[idx[i]] / 255; // 0..1
@@ -92,10 +98,26 @@ export function BgMusic({ src }: { src: string }) {
     cancelAnimationFrame(rafRef.current);
     tick();
   };
+  const stopLoop = () => {
+    loopRunningRef.current = false;
+    cancelAnimationFrame(rafRef.current);
+  };
 
+  // Pause/resume the FFT loop when the tab visibility changes.
   useEffect(() => {
-    return () => cancelAnimationFrame(rafRef.current);
-  }, []);
+    const onVis = () => {
+      if (document.hidden) {
+        stopLoop();
+      } else if (soundOn) {
+        runLoop();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      stopLoop();
+    };
+  }, [soundOn]);
 
   // First real gesture: unmute + resume context + start analyser.
   useEffect(() => {
@@ -145,6 +167,9 @@ export function BgMusic({ src }: { src: string }) {
         .catch(() => {});
     } else {
       a.muted = true;
+      // Bars are hidden anyway when soundOn is false — don't keep reading
+      // the FFT at 60 FPS in the background.
+      stopLoop();
     }
   };
 
