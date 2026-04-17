@@ -1,89 +1,101 @@
-import { useEffect, useRef, useState } from "react";
-import { Volume2, VolumeX } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 /**
- * Background ambience.
+ * Background ambience — no UI.
  *
- * UX model: the toggle is conceptually ON by default. Audio starts
- * audibly playing as soon as the browser allows — either via muted
- * autoplay that we un-mute on the first gesture, or directly after
- * the first click if autoplay was refused.
- *
- * `wantsSound` is the authoritative visual state (icon). The actual
- * <audio>.muted value follows it as soon as the browser permits
- * un-muted playback.
+ * Browser policy ALWAYS blocks autoplay with sound on a fresh page
+ * load. The workaround: start muted (allowed everywhere), then
+ * attempt an unmute on every conceivable user event. The first
+ * event that the browser recognizes as a user activation will
+ * succeed; subsequent attempts are no-ops thanks to the `done`
+ * guard.
  */
 export function BgMusic({ src }: { src: string }) {
   const ref = useRef<HTMLAudioElement>(null);
-  const [wantsSound, setWantsSound] = useState(true);
 
-  // Muted autoplay on mount — virtually always allowed.
   useEffect(() => {
     const a = ref.current;
     if (!a) return;
     a.volume = 0.35;
     a.muted = true;
+    a.loop = true;
+    a.preload = "auto";
+
+    // Kick off the muted playback as early as possible.
     a.play().catch(() => {});
+
+    let done = false;
+    const unmute = () => {
+      if (done) return;
+      a.muted = false;
+      const p = a.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => {
+          done = true;
+          cleanup();
+        }).catch(() => {
+          // Browser rejected — re-mute and wait for a stronger event.
+          a.muted = true;
+        });
+      } else {
+        done = true;
+        cleanup();
+      }
+    };
+
+    // Cast a wide net. Activation-granting per spec:
+    //   keydown, pointerdown/up, touchend, mousedown, click
+    // Non-activation but harmless to listen on — some browsers
+    // (older Chrome, Firefox on Linux) may still treat them as
+    // gestures:
+    //   mousemove, pointermove, touchstart, touchmove, wheel,
+    //   scroll, focus, keyup, contextmenu
+    const events = [
+      "pointerdown",
+      "pointerup",
+      "pointermove",
+      "touchstart",
+      "touchmove",
+      "touchend",
+      "mousedown",
+      "mouseup",
+      "mousemove",
+      "click",
+      "dblclick",
+      "contextmenu",
+      "wheel",
+      "scroll",
+      "keydown",
+      "keyup",
+      "keypress",
+      "focus",
+      "focusin",
+    ] as const;
+
+    const opts: AddEventListenerOptions = { capture: true, passive: true };
+    const cleanup = () => {
+      for (const ev of events) {
+        document.removeEventListener(ev, unmute, true);
+        window.removeEventListener(ev, unmute, true);
+      }
+    };
+    for (const ev of events) {
+      document.addEventListener(ev, unmute, opts);
+      window.addEventListener(ev, unmute, opts);
+    }
+    // Also handle the case where the page becomes visible later
+    // (e.g. user switched tabs and came back).
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && !done) {
+        a.play().catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cleanup();
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
-  // Only the first SCROLL unmutes the audio — no unmute on plain
-  // taps/clicks. `wheel` covers desktop mouse-wheel, `touchmove`
-  // covers mobile finger-scroll, `scroll` is a last-resort fallback
-  // (may be swallowed by Lenis, hence capture phase).
-  useEffect(() => {
-    let done = false;
-    const sync = () => {
-      if (done) return;
-      done = true;
-      const a = ref.current;
-      if (!a) return;
-      a.muted = !wantsSound;
-      a.play().catch(() => {});
-      cleanup();
-    };
-    const events = ["wheel", "touchmove", "scroll"] as const;
-    const cleanup = () => {
-      for (const e of events) document.removeEventListener(e, sync, true);
-      window.removeEventListener("scroll", sync, true);
-    };
-    for (const e of events) {
-      document.addEventListener(e, sync, {
-        capture: true,
-        once: true,
-        passive: true,
-      });
-    }
-    // Lenis often hijacks window.scroll — also listen there explicitly.
-    window.addEventListener("scroll", sync, {
-      capture: true,
-      once: true,
-      passive: true,
-    });
-    return cleanup;
-  }, [wantsSound]);
-
-  const toggle = () => {
-    const a = ref.current;
-    const next = !wantsSound;
-    setWantsSound(next);
-    if (!a) return;
-    a.muted = !next;
-    if (next) a.play().catch(() => {});
-  };
-
-  return (
-    <>
-      <audio ref={ref} src={src} autoPlay muted loop preload="auto" />
-      <button
-        type="button"
-        aria-label={wantsSound ? "Выключить звук" : "Включить звук"}
-        title={wantsSound ? "Выключить звук" : "Включить звук"}
-        onClick={toggle}
-        data-cursor="link"
-        className="fixed bottom-6 right-6 z-[90] w-11 h-11 md:w-12 md:h-12 rounded-full border border-white/25 bg-black/50 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white hover:border-amber-300/60 hover:bg-black/70 transition-colors duration-300"
-      >
-        {wantsSound ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-      </button>
-    </>
-  );
+  return <audio ref={ref} src={src} autoPlay muted loop preload="auto" />;
 }
