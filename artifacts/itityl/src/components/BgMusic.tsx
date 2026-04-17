@@ -2,46 +2,63 @@ import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 
 /**
- * Background ambience. Starts MUTED autoplay (the only kind browsers
- * allow without a user gesture), then unmutes on first user
- * interaction if the visitor hasn't explicitly clicked "mute" yet.
+ * Background ambience.
  *
- * A floating icon in the bottom-right lets the user toggle sound.
+ * Browsers block NON-muted autoplay; so we:
+ *   1. Start MUTED autoplay on mount (best-effort, often allowed).
+ *   2. On *any* user interaction (capture phase on document — survives
+ *      stopPropagation by smooth-scroll libs etc.), call play() + unmute.
+ *   3. A pulsing button bottom-right is the guaranteed fallback: one tap
+ *      starts (or silences) audio regardless of what the browser's
+ *      autoplay policy says.
  */
 export function BgMusic({ src }: { src: string }) {
   const ref = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const userChoseRef = useRef(false);
 
-  // Try to begin muted playback ASAP.
+  // 1) Muted autoplay on mount.
   useEffect(() => {
     const a = ref.current;
     if (!a) return;
     a.volume = 0.35;
-    const p = a.play();
-    if (p) p.catch(() => {});
+    a.muted = true;
+    a.play()
+      .then(() => setPlaying(true))
+      .catch(() => {
+        // Even muted autoplay refused — will be started on first gesture.
+      });
   }, []);
 
-  // On first user interaction, auto-unmute (unless the user already
-  // flipped the toggle themselves).
+  // 2) On first gesture anywhere: unmute + ensure playback.
   useEffect(() => {
-    const unmuteOnce = () => {
-      if (userChoseRef.current) return;
+    const start = () => {
+      if (userChoseRef.current) return cleanup();
       const a = ref.current;
-      if (!a) return;
+      if (!a) return cleanup();
       a.muted = false;
       setMuted(false);
-      a.play().catch(() => {});
+      a.play()
+        .then(() => setPlaying(true))
+        .catch(() => {});
       cleanup();
     };
+    const opts: AddEventListenerOptions = { capture: true, once: true };
+    const events = [
+      "pointerdown",
+      "pointerup",
+      "touchstart",
+      "touchend",
+      "mousedown",
+      "click",
+      "keydown",
+      "wheel",
+    ] as const;
     const cleanup = () => {
-      window.removeEventListener("pointerdown", unmuteOnce);
-      window.removeEventListener("keydown", unmuteOnce);
-      window.removeEventListener("scroll", unmuteOnce);
+      for (const e of events) document.removeEventListener(e, start, true);
     };
-    window.addEventListener("pointerdown", unmuteOnce, { once: true });
-    window.addEventListener("keydown", unmuteOnce, { once: true });
-    window.addEventListener("scroll", unmuteOnce, { once: true, passive: true });
+    for (const e of events) document.addEventListener(e, start, opts);
     return cleanup;
   }, []);
 
@@ -49,23 +66,47 @@ export function BgMusic({ src }: { src: string }) {
     const a = ref.current;
     if (!a) return;
     userChoseRef.current = true;
-    const next = !muted;
-    a.muted = next;
-    setMuted(next);
-    if (!next) a.play().catch(() => {});
+    if (!playing || muted) {
+      a.muted = false;
+      setMuted(false);
+      a.play()
+        .then(() => setPlaying(true))
+        .catch(() => setPlaying(false));
+    } else {
+      a.muted = true;
+      setMuted(true);
+    }
   };
+
+  const soundOn = playing && !muted;
 
   return (
     <>
       <audio ref={ref} src={src} autoPlay muted loop preload="auto" />
       <button
         type="button"
-        aria-label={muted ? "Включить звук" : "Выключить звук"}
+        aria-label={soundOn ? "Выключить звук" : "Включить звук"}
+        title={soundOn ? "Выключить звук" : "Включить звук"}
         onClick={toggle}
         data-cursor="link"
-        className="fixed bottom-6 right-6 z-[90] w-11 h-11 md:w-12 md:h-12 rounded-full border border-white/25 bg-black/50 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white hover:border-amber-300/60 hover:bg-black/70 transition-colors duration-300"
+        className={`fixed bottom-6 right-6 z-[90] w-12 h-12 md:w-14 md:h-14 rounded-full border backdrop-blur-md flex items-center justify-center transition-all duration-300 ${
+          soundOn
+            ? "border-amber-300/60 bg-black/60 text-amber-300"
+            : "border-white/30 bg-black/60 text-white/90 hover:text-white hover:border-amber-300/60"
+        }`}
       >
-        {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        {/* Pulse ring — draws attention when sound is off */}
+        {!soundOn && (
+          <span
+            className="absolute inset-0 rounded-full border border-amber-300/50 animate-ping"
+            aria-hidden
+          />
+        )}
+        {soundOn ? (
+          <Volume2 className="relative w-5 h-5 md:w-6 md:h-6" />
+        ) : (
+          <VolumeX className="relative w-5 h-5 md:w-6 md:h-6" />
+        )}
       </button>
     </>
   );
