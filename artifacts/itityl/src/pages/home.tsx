@@ -1,13 +1,10 @@
 import { useRef } from "react";
 import { Link } from "wouter";
-import {
-  ArrowUpRight,
-  ArrowDown,
-  FileText,
-  BookOpen,
-  Repeat,
-  BarChart3,
-} from "lucide-react";
+import { ArrowUpRight, ArrowDown } from "lucide-react";
+import iconProof from "@assets/cap-proof_1776417409806.png";
+import iconData from "@assets/cap-data_1776417413421.png";
+import iconTraining from "@assets/cap-training_1776417419081.png";
+import iconStrategy from "@assets/cap-strategy_1776417425816.png";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { fadeUp, stagger, lineDraw, easeOutExpo } from "@/lib/motion";
 import { SplitText } from "@/components/SplitText";
@@ -21,24 +18,24 @@ import { useIntro } from "@/lib/intro-context";
 
 const whyAI = [
   {
-    icon: FileText,
+    icon: iconProof,
     title: "Документы и переписка",
     desc: "Извлечение данных, классификация, поиск, маршрутизация, проверка комплектности, ускорение обработки обращений и внутренних документов.",
   },
   {
-    icon: BookOpen,
+    icon: iconData,
     title: "Корпоративные знания",
     desc: "Поиск по внутренним базам знаний, регламентам, инструкциям и архивам с быстрым получением релевантных ответов и ссылок на источники.",
   },
   {
-    icon: Repeat,
+    icon: iconTraining,
     title: "Рутинные процессы",
-    desc: "Снижение ручной нагрузки в операционных и поддерживающих функциях, где сотрудники тратят время на типовые действия.",
+    desc: "Снижение ручной нагрузки в операционных и поддерживающих функциях, где сотрудники тратят время на типовые действия и повторяющиеся проверки.",
   },
   {
-    icon: BarChart3,
-    title: "Аналитика и решения",
-    desc: "Подготовка структурированной информации для специалистов и руководителей, ускорение доступа к данным.",
+    icon: iconStrategy,
+    title: "Аналитика и принятие решений",
+    desc: "Подготовка структурированной информации для специалистов и руководителей, ускорение доступа к данным и сокращение времени на обработку входящего массива.",
   },
 ];
 
@@ -401,8 +398,8 @@ export default function Home() {
           <div className="lg:col-span-9">
             <SplitText
               as="h2"
-              text="Процессы, которые становятся умнее."
-              stagger={0.06}
+              text="АЙ-ТИТУЛ — ваш партнер по внедрению искусственного интеллекта"
+              stagger={0.04}
               className="text-4xl md:text-6xl lg:text-7xl font-heading font-extrabold leading-[0.95] uppercase tracking-tighter mb-12"
             />
 
@@ -424,10 +421,10 @@ export default function Home() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {[
-                { val: "120+", label: "Крупных проектов" },
+                { val: "10+", label: "Крупных проектов" },
                 { val: "40+", label: "Заказчиков" },
                 { val: "8+", label: "Лет в ИИ" },
-                { val: "98%", label: "Доходят до прод" },
+                { val: "20+", label: "Экспертов" },
               ].map((s, i) => (
                 <motion.div key={i} variants={fadeUp}>
                   <div className="text-4xl md:text-6xl font-heading font-extrabold mb-3 text-amber-300">
@@ -475,32 +472,35 @@ export default function Home() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-white/10 border border-white/10">
-            {whyAI.map((item, i) => {
-              const Icon = item.icon;
-              return (
-                <motion.div
-                  key={i}
-                  variants={fadeUp}
-                  whileHover={{ y: -4 }}
-                  transition={{ duration: 0.5, ease: easeOutExpo }}
-                  className="bg-black p-8 lg:p-10 flex flex-col gap-6 min-h-[320px] group relative overflow-hidden"
-                  data-cursor="link"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-amber-500/0 to-amber-500/0 group-hover:from-amber-500/8 transition-all duration-700 pointer-events-none" />
-                  <div className="relative w-11 h-11 flex items-center justify-center border border-amber-300/40 text-amber-300 group-hover:bg-amber-300 group-hover:text-black transition-colors duration-500">
-                    <Icon className="w-5 h-5" strokeWidth={1.8} />
-                  </div>
-                  <div className="relative mt-auto">
-                    <h3 className="text-lg md:text-xl font-heading font-extrabold uppercase tracking-tight mb-3 group-hover:text-amber-300 transition-colors duration-500">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-white/55 leading-relaxed">
-                      {item.desc}
-                    </p>
-                  </div>
-                </motion.div>
-              );
-            })}
+            {whyAI.map((item, i) => (
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.5, ease: easeOutExpo }}
+                className="bg-black p-8 lg:p-10 flex flex-col gap-6 min-h-[340px] group relative overflow-hidden"
+                data-cursor="link"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/0 to-amber-500/0 group-hover:from-amber-500/8 transition-all duration-700 pointer-events-none" />
+                <div className="relative w-20 h-20 flex items-center justify-center">
+                  <img
+                    src={item.icon}
+                    alt=""
+                    aria-hidden
+                    draggable={false}
+                    className="w-full h-full object-contain select-none why-icon"
+                  />
+                </div>
+                <div className="relative mt-auto">
+                  <h3 className="text-lg md:text-xl font-heading font-extrabold uppercase tracking-tight mb-3 group-hover:text-amber-300 transition-colors duration-500">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-white/55 leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </motion.div>
       </section>

@@ -245,6 +245,17 @@ select:-webkit-autofill {
   }
 }
 
+/* "Why AI" card icons — placeholder white isometric sketches.
+   Apply a warm amber tint so they read as gold against black.
+   Will be replaced by hand-drawn gold icons later. */
+.why-icon {
+  filter: brightness(0.95) sepia(1) saturate(6) hue-rotate(-18deg) brightness(1.05);
+  transition: filter 500ms ease;
+}
+.group:hover .why-icon {
+  filter: brightness(1) sepia(1) saturate(9) hue-rotate(-15deg) brightness(1.15);
+}
+
 /* Blinking cursor for logo — mimics terminal cursor */
 .logo-cursor {
   display: inline-block;
