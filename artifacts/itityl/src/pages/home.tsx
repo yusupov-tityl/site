@@ -1,10 +1,11 @@
 import { useRef } from "react";
 import { Link } from "wouter";
 import { ArrowUpRight, ArrowDown } from "lucide-react";
-import iconProof from "@assets/cap-proof_1776417409806.png";
-import iconData from "@assets/cap-data_1776417413421.png";
-import iconTraining from "@assets/cap-training_1776417419081.png";
-import iconStrategy from "@assets/cap-strategy_1776417425816.png";
+const iconBase = `${import.meta.env.BASE_URL}icons/`;
+const iconProof = `${iconBase}cap-proof.png`;
+const iconData = `${iconBase}cap-data.png`;
+const iconTraining = `${iconBase}cap-training.png`;
+const iconStrategy = `${iconBase}cap-strategy.png`;
 import pavelVideo from "@assets/hf_20260417_090223_ec2b49b0-2307-4bf5-8c78-dd43811a0bab_1776426104695.mp4";
 import olegVideo from "@assets/hf_20260417_115614_bed0709f-bd0d-46f5-8a46-e20808c6fdc2_1776427269536.mp4";
 import maximVideo from "@assets/hf_20260417_094002_9f9918df-7e22-4a8c-bcad-f0ca7591c13d_1776426430632.mp4";
@@ -206,7 +207,7 @@ const team: {
     video: maximVideo,
     // Source frames Maxim's head left-of-center; nudge the visible
     // area so the head lines up with the card center.
-    objectPosition: "30% center",
+    objectPosition: "40% center",
   },
 ];
 
