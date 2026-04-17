@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { MonoLogo } from "./MonoLogo";
 
 export type MarqueeItem =
@@ -17,7 +17,7 @@ type Props = {
   speed?: number;
 };
 
-export function MarqueeRow({ items, reverse = false, speed = 28 }: Props) {
+function MarqueeRowImpl({ items, reverse = false, speed = 28 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const firstCopyRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -132,3 +132,5 @@ export function MarqueeRow({ items, reverse = false, speed = 28 }: Props) {
     </div>
   );
 }
+
+export const MarqueeRow = memo(MarqueeRowImpl);
