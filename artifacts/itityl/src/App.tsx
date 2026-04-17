@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MotionConfig, LazyMotion, domAnimation } from "framer-motion";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +10,10 @@ import { SmoothScroll } from "@/components/SmoothScroll";
 import { CustomCursor } from "@/components/CustomCursor";
 import { EntryGate } from "@/components/EntryGate";
 import { IntroContext } from "@/lib/intro-context";
+
+// Shared singleton so every useMutation/useQuery in the app plugs into
+// the same cache (ContactForm hooks need this via @workspace/api-client-react).
+const queryClient = new QueryClient();
 
 // Code-split infrequently used parts out of the initial bundle so the
 // home page ships without the privacy page, the cookie banner, and the
@@ -52,6 +57,7 @@ function App() {
   const heroDelay = loaderShown ? 0 : HERO_DELAY_DURING_INTRO;
 
   return (
+    <QueryClientProvider client={queryClient}>
     <LazyMotion features={domAnimation} strict>
     <MotionConfig reducedMotion="user">
       <TooltipProvider>
@@ -78,6 +84,7 @@ function App() {
       </TooltipProvider>
     </MotionConfig>
     </LazyMotion>
+    </QueryClientProvider>
   );
 }
 
