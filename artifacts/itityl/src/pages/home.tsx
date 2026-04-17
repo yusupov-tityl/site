@@ -77,7 +77,7 @@ const stack = [
 
 const services = [
   {
-    ru: "Консалтинг",
+    ru: "ИИ Консалтинг",
     en: "Consulting & Strategy",
     gradient: "linear-gradient(135deg, #1a1a1a 0%, #b86a1f 100%)",
   },
