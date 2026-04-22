@@ -295,21 +295,34 @@ export default function Home() {
 
         <div className="hidden md:flex items-center gap-10 text-xs font-bold tracking-[0.2em] uppercase">
           {[
-            { l: "Услуги", h: "#services" },
-            { l: "Продукты", h: "#products" },
+            { l: "Услуги", h: "/services", external: true },
+            { l: "Продукты", h: "/products", external: true },
+            { l: "Технологии", h: "/technologies", external: true },
             { l: "Команда", h: "#team" },
             { l: "Компания", h: "#about" },
-          ].map((it) => (
-            <a
-              key={it.h}
-              href={it.h}
-              data-cursor="link"
-              className="relative group hover:text-amber-300 transition-colors"
-            >
-              {it.l}
-              <span className="absolute -bottom-1 left-0 h-px w-0 bg-amber-300 group-hover:w-full transition-all duration-500 ease-out" />
-            </a>
-          ))}
+          ].map((it) =>
+            it.external ? (
+              <Link
+                key={it.h}
+                href={it.h}
+                data-cursor="link"
+                className="relative group hover:text-amber-300 transition-colors"
+              >
+                {it.l}
+                <span className="absolute -bottom-1 left-0 h-px w-0 bg-amber-300 group-hover:w-full transition-all duration-500 ease-out" />
+              </Link>
+            ) : (
+              <a
+                key={it.h}
+                href={it.h}
+                data-cursor="link"
+                className="relative group hover:text-amber-300 transition-colors"
+              >
+                {it.l}
+                <span className="absolute -bottom-1 left-0 h-px w-0 bg-amber-300 group-hover:w-full transition-all duration-500 ease-out" />
+              </a>
+            ),
+          )}
         </div>
 
         <Magnetic strength={0.4}>

@@ -6,6 +6,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import Products from "@/pages/products";
+import Technologies from "@/pages/technologies";
+import Services from "@/pages/services";
+import { ComingSoon } from "@/pages/coming-soon";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { CustomCursor } from "@/components/CustomCursor";
 import { EntryGate } from "@/components/EntryGate";
@@ -34,6 +38,46 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/privacy" component={Privacy} />
+
+      <Route path="/products" component={Products} />
+      <Route path="/products/ai-agents">
+        <ComingSoon title="ИИ-агенты для бизнеса" parentLabel="Продукты" parentTo="/products" />
+      </Route>
+      <Route path="/products/smart-office">
+        <ComingSoon title="Интеллектуальная канцелярия" parentLabel="Продукты" parentTo="/products" />
+      </Route>
+      <Route path="/products/document-analyst">
+        <ComingSoon title="Аналитик документов" parentLabel="Продукты" parentTo="/products" />
+      </Route>
+      <Route path="/products/rag">
+        <ComingSoon title="RAG по внутренним документам" parentLabel="Продукты" parentTo="/products" />
+      </Route>
+
+      <Route path="/technologies" component={Technologies} />
+
+      <Route path="/services" component={Services} />
+      <Route path="/services/ai-consulting">
+        <ComingSoon title="AI-консалтинг и выявление сценариев" parentLabel="Услуги" parentTo="/services" />
+      </Route>
+      <Route path="/services/process-audit">
+        <ComingSoon title="Обследование бизнес-процессов и ИТ-ландшафта" parentLabel="Услуги" parentTo="/services" />
+      </Route>
+      <Route path="/services/portfolio">
+        <ComingSoon title="Формирование портфеля ИИ-инициатив" parentLabel="Услуги" parentTo="/services" />
+      </Route>
+      <Route path="/services/pilots">
+        <ComingSoon title="Пилоты и проверка гипотез" parentLabel="Услуги" parentTo="/services" />
+      </Route>
+      <Route path="/services/development">
+        <ComingSoon title="Разработка ИИ-решений" parentLabel="Услуги" parentTo="/services" />
+      </Route>
+      <Route path="/services/integration">
+        <ComingSoon title="Интеграция в корпоративные системы" parentLabel="Услуги" parentTo="/services" />
+      </Route>
+      <Route path="/services/support">
+        <ComingSoon title="Сопровождение и развитие" parentLabel="Услуги" parentTo="/services" />
+      </Route>
+
       <Route component={NotFound} />
     </Switch>
   );
