@@ -44,7 +44,7 @@ type ContactFormValues = z.infer<typeof contactSchema>;
 const fieldBase =
   "w-full bg-transparent border-b border-black/20 focus:border-black outline-none py-3 text-base md:text-lg font-medium text-black placeholder:text-black/35 transition-colors";
 
-export function ContactForm() {
+export function ContactForm({ source }: { source?: string } = {}) {
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const captchaTokenRef = useRef<string | null>(null);
@@ -76,7 +76,7 @@ export function ContactForm() {
           company: values.company ? values.company : undefined,
           email: values.email,
           message: values.message,
-          source: "itityl-landing",
+          source: source ? `itityl-landing:${source}` : "itityl-landing",
           website: values.website ?? "",
           captchaToken: captchaTokenRef.current ?? undefined,
         },

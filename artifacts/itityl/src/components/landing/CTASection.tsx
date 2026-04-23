@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { fadeUp, lineDraw } from "@/lib/motion";
+import { useContactModal } from "@/lib/contact-modal";
 
 const ContactForm = lazy(() =>
   import("@/components/ContactForm").then((m) => ({ default: m.ContactForm })),
@@ -11,10 +12,12 @@ type Props = {
   index?: string;
   title: string;
   body?: string;
-  buttons?: { label: string; href?: string }[];
+  buttons?: { label: string; ctaSource?: string }[];
+  source?: string;
 };
 
-export function CTASection({ index = "—", title, body, buttons = [] }: Props) {
+export function CTASection({ index = "—", title, body, buttons = [], source }: Props) {
+  const { open } = useContactModal();
   return (
     <section
       id="contact"
@@ -51,23 +54,28 @@ export function CTASection({ index = "—", title, body, buttons = [] }: Props) 
         )}
         {buttons.length > 0 && (
           <motion.div variants={fadeUp} className="mt-10 flex flex-wrap gap-3">
-            {buttons.map((b) => (
-              <a
-                key={b.label}
-                href={b.href ?? "#contact"}
-                data-cursor="link"
-                className="inline-flex items-center gap-2 bg-black text-white px-6 py-3.5 text-xs font-extrabold uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
-              >
-                {b.label} <ArrowUpRight className="w-3.5 h-3.5" />
-              </a>
-            ))}
+            {buttons.map((b) => {
+              const src = b.ctaSource ?? `${source ?? "cta"}-${b.label}`;
+              return (
+                <button
+                  key={b.label}
+                  type="button"
+                  onClick={() => open(src)}
+                  data-cursor="link"
+                  data-analytics={`cta:${src}`}
+                  className="inline-flex items-center gap-2 bg-black text-white px-6 py-3.5 text-xs font-extrabold uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
+                >
+                  {b.label} <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              );
+            })}
           </motion.div>
         )}
 
         <motion.div variants={lineDraw} className="h-px bg-black/20 origin-left my-14" />
 
         <Suspense fallback={<div className="h-96" aria-hidden />}>
-          <ContactForm />
+          <ContactForm source={source} />
         </Suspense>
       </motion.div>
     </section>

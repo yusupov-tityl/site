@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { Link } from "wouter";
-import { fadeUp, lineDraw } from "@/lib/motion";
+import { fadeUp } from "@/lib/motion";
 import { useSeo } from "@/lib/useSeo";
 import { SiteNav } from "@/components/landing/SiteNav";
 import { SiteFooter } from "@/components/landing/SiteFooter";
@@ -12,7 +12,9 @@ import { PillRow } from "@/components/landing/PillRow";
 import { FAQAccordion } from "@/components/landing/FAQAccordion";
 import { CTASection } from "@/components/landing/CTASection";
 import { NavList } from "@/components/landing/NavList";
+import { Breadcrumbs } from "@/components/landing/Breadcrumbs";
 import { MarqueeRow } from "@/components/MarqueeRow";
+import { useContactModal } from "@/lib/contact-modal";
 
 const products = [
   {
@@ -72,18 +74,21 @@ export default function Products() {
     "Продуктовая линейка Ай-Титул: ИИ-агенты, интеллектуальная канцелярия, аналитик документов, RAG по внутренним материалам для корпоративной среды и B2G.",
   );
 
+  const { open: openModal } = useContactModal();
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-amber-400 selection:text-black overflow-x-hidden">
       <SiteNav />
+      <Breadcrumbs items={[{ label: "Главная", href: "/" }, { label: "Продукты" }]} />
       <PageHero
         index="01"
         eyebrow="Продукты"
         title="Прикладные ИИ-решения для документов, знаний и корпоративных процессов"
         subtitle="Мы развиваем продуктовые направления для организаций, которым нужны понятные инструменты для работы с документами, внутренними знаниями, рутинными операциями и сервисными сценариями."
+        hasBreadcrumbs
         ctas={[
           { label: "Посмотреть продукты", href: "#products" },
           { label: "Выбрать решение", href: "#choose" },
-          { label: "Обсудить задачу", href: "#contact" },
+          { label: "Обсудить задачу", ctaSource: "products-hero-discuss" },
         ]}
       />
 
@@ -119,16 +124,18 @@ export default function Products() {
           ))}
         </motion.div>
         <div className="max-w-[1600px] mx-auto mt-12">
-          <a
-            href="#contact"
+          <button
+            type="button"
+            onClick={() => openModal("products-grid-consultation")}
             data-cursor="link"
-            className="group flex items-center justify-between gap-6 w-full bg-amber-400 text-black px-8 md:px-12 py-8 hover:bg-amber-300 transition-colors"
+            data-analytics="cta:products-grid-consultation"
+            className="group flex items-center justify-between gap-6 w-full bg-amber-400 text-black px-6 md:px-12 py-7 md:py-8 hover:bg-amber-300 transition-colors text-left"
           >
-            <span className="text-xl md:text-3xl font-heading font-extrabold uppercase tracking-tight">
+            <span className="text-lg md:text-2xl lg:text-3xl font-heading font-extrabold uppercase tracking-tight">
               Заказать консультацию специалиста
             </span>
-            <ArrowUpRight className="w-8 h-8 group-hover:rotate-12 transition-transform" />
-          </a>
+            <ArrowUpRight className="w-7 h-7 md:w-8 md:h-8 shrink-0 group-hover:rotate-12 transition-transform" />
+          </button>
         </div>
       </section>
 
@@ -144,7 +151,7 @@ export default function Products() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.1 }}
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
-          className="max-w-[1600px] mx-auto mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-px bg-white/10"
+          className="max-w-[1600px] mx-auto mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-px bg-white/10"
         >
           {tasks.map((t, i) => (
             <motion.div
@@ -257,10 +264,11 @@ export default function Products() {
         index="10"
         title="Поможем выбрать подходящее решение"
         body="Если вы хотите понять, какой продукт лучше подходит под ваши процессы, документы, внутренние знания или сервисные сценарии, начнем с предметного разговора о задаче и текущей среде."
+        source="products-final"
         buttons={[
-          { label: "Заказать консультацию" },
-          { label: "Обсудить проект" },
-          { label: "Связаться с командой" },
+          { label: "Заказать консультацию", ctaSource: "products-final-consult" },
+          { label: "Обсудить проект", ctaSource: "products-final-project" },
+          { label: "Связаться с командой", ctaSource: "products-final-team" },
         ]}
       />
 

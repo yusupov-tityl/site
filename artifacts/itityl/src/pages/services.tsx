@@ -11,7 +11,10 @@ import { NumberedCard } from "@/components/landing/NumberedCard";
 import { FAQAccordion } from "@/components/landing/FAQAccordion";
 import { CTASection } from "@/components/landing/CTASection";
 import { NavList } from "@/components/landing/NavList";
+import { Breadcrumbs } from "@/components/landing/Breadcrumbs";
+import { CTAButton } from "@/components/landing/CTAButton";
 import { MarqueeRow } from "@/components/MarqueeRow";
+import { useContactModal } from "@/lib/contact-modal";
 
 const services = [
   { t: "AI-консалтинг и выявление сценариев", d: "Помогаем определить, где искусственный интеллект может дать практический эффект, какие задачи стоит запускать в первую очередь и как подойти к внедрению без лишних гипотез.", to: "/services/ai-consulting" },
@@ -59,18 +62,21 @@ export default function Services() {
     "AI-консалтинг, обследование процессов, формирование портфеля инициатив, пилоты, разработка, интеграция и сопровождение ИИ-решений.",
   );
 
+  const { open: openModal } = useContactModal();
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-amber-400 selection:text-black overflow-x-hidden">
       <SiteNav />
+      <Breadcrumbs items={[{ label: "Главная", href: "/" }, { label: "Услуги" }]} />
       <PageHero
         index="03"
         eyebrow="Услуги"
         title="Услуги по разработке и внедрению ИИ-решений для бизнеса"
         subtitle="Мы оказываем услуги в сфере искусственного интеллекта для бизнеса и B2G: помогаем выявлять прикладные сценарии, оценивать их эффект, запускать пилоты, разрабатывать решения и встраивать их в процессы, документы, данные и корпоративные системы."
+        hasBreadcrumbs
         ctas={[
-          { label: "Обсудить задачи", href: "#contact" },
+          { label: "Обсудить задачи", ctaSource: "services-hero-discuss" },
           { label: "Посмотреть услуги", href: "#services" },
-          { label: "Получить консультацию", href: "#contact" },
+          { label: "Получить консультацию", ctaSource: "services-hero-consult" },
         ]}
       />
 
@@ -111,13 +117,15 @@ export default function Services() {
             <p className="text-base leading-relaxed">
               Закажите консультацию и наш специалист расскажет подробнее об услугах, которые мы предоставляем для бизнеса.
             </p>
-            <a
-              href="#contact"
+            <button
+              type="button"
+              onClick={() => openModal("services-help-choose")}
               data-cursor="link"
+              data-analytics="cta:services-help-choose"
               className="mt-auto self-start inline-flex items-center gap-2 bg-black text-white px-6 py-3.5 text-xs font-extrabold uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
             >
               Заказать консультацию <ArrowUpRight className="w-3.5 h-3.5" />
-            </a>
+            </button>
           </motion.div>
         </motion.div>
       </section>
@@ -138,7 +146,7 @@ export default function Services() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.1 }}
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
-          className="max-w-[1600px] mx-auto mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-px bg-white/10"
+          className="max-w-[1600px] mx-auto mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-px bg-white/10"
         >
           {tasks.map((t, i) => (
             <motion.div
@@ -182,13 +190,7 @@ export default function Services() {
           ))}
         </motion.div>
         <div className="max-w-[1600px] mx-auto mt-12">
-          <a
-            href="#contact"
-            data-cursor="link"
-            className="inline-flex items-center gap-2 bg-amber-400 text-black px-6 py-3.5 text-xs font-extrabold uppercase tracking-widest hover:bg-amber-300 transition-colors"
-          >
-            Получить консультацию <ArrowUpRight className="w-3.5 h-3.5" />
-          </a>
+          <CTAButton label="Получить консультацию" ctaSource="services-why-consult" variant="primary" />
         </div>
       </section>
 
@@ -204,7 +206,7 @@ export default function Services() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.1 }}
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
-          className="max-w-[1600px] mx-auto mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-px bg-white/10"
+          className="max-w-[1600px] mx-auto mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-px bg-white/10"
         >
           {directions.map((d, i) => (
             <motion.div
@@ -261,10 +263,11 @@ export default function Services() {
         index="09"
         title="Обсудим, какие ИИ-услуги нужны вашей организации"
         body="Если вам нужен понятный набор услуг под конкретные процессы, документы, данные и системы, начнем с предметного обсуждения вашей задачи и возможных сценариев внедрения. Закажите консультацию и наш специалист свяжется с вами в течение рабочего дня."
+        source="services-final"
         buttons={[
-          { label: "Обсудить проект" },
-          { label: "Получить консультацию" },
-          { label: "Связаться с командой" },
+          { label: "Обсудить проект", ctaSource: "services-final-project" },
+          { label: "Получить консультацию", ctaSource: "services-final-consult" },
+          { label: "Связаться с командой", ctaSource: "services-final-team" },
         ]}
       />
 

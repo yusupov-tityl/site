@@ -9,8 +9,9 @@ import { NumberedCard } from "@/components/landing/NumberedCard";
 import { PillRow } from "@/components/landing/PillRow";
 import { FAQAccordion } from "@/components/landing/FAQAccordion";
 import { CTASection } from "@/components/landing/CTASection";
+import { Breadcrumbs } from "@/components/landing/Breadcrumbs";
+import { CTAButton } from "@/components/landing/CTAButton";
 import { MarqueeRow } from "@/components/MarqueeRow";
-import { ArrowUpRight } from "lucide-react";
 
 const directions = [
   { t: "LLM и работа с текстом", d: "Большие языковые модели для анализа документов, классификации, маршрутизации, поиска по знаниям, подготовки ответов и поддержки внутренних сервисных сценариев." },
@@ -52,14 +53,16 @@ export default function Technologies() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-amber-400 selection:text-black overflow-x-hidden">
       <SiteNav />
+      <Breadcrumbs items={[{ label: "Главная", href: "/" }, { label: "Технологии" }]} />
       <PageHero
         index="02"
         eyebrow="Технологии"
         title="Технологии и прикладная экспертиза Ай-Титул"
         subtitle="Мы применяем прикладные ИИ-технологии для задач, где важны документы, данные, изображения, видео, внутренние знания и скорость обработки информации. Мы подбираем технологический подход под конкретную задачу, качество исходных данных, требования к среде и логику дальнейшего внедрения."
+        hasBreadcrumbs
         ctas={[
-          { label: "Обсудить задачу", href: "#contact" },
-          { label: "Получить консультацию", href: "#contact" },
+          { label: "Обсудить задачу", ctaSource: "tech-hero-discuss" },
+          { label: "Получить консультацию", ctaSource: "tech-hero-consult" },
           { label: "Выбрать решение", href: "#stack" },
         ]}
       />
@@ -121,13 +124,12 @@ export default function Technologies() {
                 "подготовка ответов и обобщений по внутренним материалам",
               ]}
             />
-            <a
-              href="#contact"
-              data-cursor="link"
-              className="self-start inline-flex items-center gap-2 bg-amber-400 text-black px-6 py-3.5 text-xs font-extrabold uppercase tracking-widest hover:bg-amber-300 transition-colors"
-            >
-              Заказать консультацию специалиста <ArrowUpRight className="w-3.5 h-3.5" />
-            </a>
+            <CTAButton
+              label="Заказать консультацию специалиста"
+              ctaSource="tech-llm-consult"
+              variant="primary"
+              className="self-start"
+            />
           </div>
         </div>
       </section>
@@ -176,13 +178,12 @@ export default function Technologies() {
               "поддержка сценариев, где важны детекция и классификация визуальных объектов",
             ]}
           />
-          <a
-            href="#contact"
-            data-cursor="link"
-            className="self-start inline-flex items-center gap-2 border border-white/25 text-white/85 hover:border-amber-300 hover:text-amber-300 px-6 py-3.5 text-xs font-extrabold uppercase tracking-widest transition-colors"
-          >
-            Посмотреть кейсы внедрения ИИ <ArrowUpRight className="w-3.5 h-3.5" />
-          </a>
+          <CTAButton
+            label="Посмотреть кейсы внедрения ИИ"
+            ctaSource="tech-cv-cases"
+            variant="outline"
+            className="self-start"
+          />
         </div>
       </section>
 
@@ -217,7 +218,7 @@ export default function Technologies() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.1 }}
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
-          className="max-w-[1600px] mx-auto mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-px bg-white/10"
+          className="max-w-[1600px] mx-auto mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-px bg-white/10"
         >
           {effects.map((e, i) => (
             <motion.div
@@ -282,10 +283,11 @@ export default function Technologies() {
         index="11"
         title="Обсудим, какие технологии подходят вашей задаче"
         body="Если вам нужно понять, какие подходы лучше подходят для работы с документами, знаниями, визуальными потоками, данными и внутренними системами, начнем с предметного обсуждения вашей задачи и условий применения."
+        source="tech-final"
         buttons={[
-          { label: "Запросить консультацию" },
-          { label: "Обсудить проект" },
-          { label: "Связаться с командой" },
+          { label: "Запросить консультацию", ctaSource: "tech-final-consult" },
+          { label: "Обсудить проект", ctaSource: "tech-final-project" },
+          { label: "Связаться с командой", ctaSource: "tech-final-team" },
         ]}
       />
 

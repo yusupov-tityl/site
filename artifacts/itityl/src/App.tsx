@@ -13,6 +13,9 @@ import { ComingSoon } from "@/pages/coming-soon";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { CustomCursor } from "@/components/CustomCursor";
 import { EntryGate } from "@/components/EntryGate";
+import { ScrollToTop } from "@/components/ScrollToTop";
+import { ContactModal } from "@/components/ContactModal";
+import { ContactModalProvider } from "@/lib/contact-modal";
 import { IntroContext } from "@/lib/intro-context";
 
 // Shared singleton so every useMutation/useQuery in the app plugs into
@@ -106,6 +109,7 @@ function App() {
     <MotionConfig reducedMotion="user">
       <TooltipProvider>
         <IntroContext.Provider value={{ heroDelay }}>
+          <ContactModalProvider>
           {!loaderShown && <EntryGate onEnter={handleDone} />}
           {/* Make the rest of the app inert while the loader is up so
               keyboard focus and screen readers don't leak into hidden UI. */}
@@ -113,10 +117,12 @@ function App() {
             <SmoothScroll />
             <CustomCursor />
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <ScrollToTop />
               <Suspense fallback={null}>
                 <Router />
               </Suspense>
             </WouterRouter>
+            <ContactModal />
             <Toaster />
             {loaderShown && (
               <Suspense fallback={null}>
@@ -124,6 +130,7 @@ function App() {
               </Suspense>
             )}
           </div>
+          </ContactModalProvider>
         </IntroContext.Provider>
       </TooltipProvider>
     </MotionConfig>
