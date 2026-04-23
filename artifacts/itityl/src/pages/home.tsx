@@ -18,6 +18,7 @@ import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { ServicesList } from "@/components/ServicesList";
 import { MarqueeRow } from "@/components/MarqueeRow";
 import { useIntro } from "@/lib/intro-context";
+import { useSeo } from "@/lib/useSeo";
 
 // Code-split the contact form (pulls in react-hook-form + zod + Turnstile)
 // and the background-music widget (pulls in Web Audio glue). Both live
@@ -253,6 +254,10 @@ const logos = [
 ];
 
 export default function Home() {
+  useSeo(
+    "Ай-Титул — прикладные ИИ-решения для бизнеса и B2G",
+    "AI-консалтинг, обследование процессов, пилоты и разработка ИИ-решений для документов, знаний и корпоративных процессов. LLM, RAG, ИИ-агенты, компьютерное зрение.",
+  );
   const { heroDelay: HERO_DELAY } = useIntro();
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress: heroProgress } = useScroll({
@@ -284,6 +289,8 @@ export default function Home() {
             <img
               src={`${import.meta.env.BASE_URL}logo.svg`}
               alt="Ай-Титул"
+              width={48}
+              height={48}
               className="h-10 md:h-12 w-auto select-none"
               draggable={false}
             />
@@ -975,6 +982,9 @@ export default function Home() {
                     src={a.image}
                     alt={a.title}
                     loading="lazy"
+                    decoding="async"
+                    width={800}
+                    height={600}
                     className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
                   />
                   <motion.div

@@ -60,6 +60,8 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    sourcemap: false,
+    cssMinify: "lightningcss",
     // Split the 630KB mega-chunk into vendor groups so the browser can
     // cache them independently and parse them in parallel. These groups
     // are cherry-picked from what the bundle analyzer showed as the top
@@ -72,10 +74,14 @@ export default defineConfig({
           router: ["wouter"],
           forms: ["react-hook-form", "@hookform/resolvers", "zod"],
           lenis: ["lenis"],
+          query: ["@tanstack/react-query"],
         },
       },
     },
   },
+  // Strip console.* and debugger calls from the production bundle — they
+  // add up across the codebase and leak internal state to end users.
+  esbuild: isProd ? { drop: ["console", "debugger"] } : undefined,
   server: {
     port,
     host: "0.0.0.0",

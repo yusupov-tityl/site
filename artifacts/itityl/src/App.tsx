@@ -6,15 +6,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
-import Products from "@/pages/products";
-import Technologies from "@/pages/technologies";
-import Services from "@/pages/services";
 import { ComingSoon } from "@/pages/coming-soon";
-import { SmoothScroll } from "@/components/SmoothScroll";
 import { CustomCursor } from "@/components/CustomCursor";
 import { EntryGate } from "@/components/EntryGate";
 import { ScrollToTop } from "@/components/ScrollToTop";
-import { ContactModal } from "@/components/ContactModal";
 import { ContactModalProvider } from "@/lib/contact-modal";
 import { IntroContext } from "@/lib/intro-context";
 
@@ -23,13 +18,23 @@ import { IntroContext } from "@/lib/intro-context";
 const queryClient = new QueryClient();
 
 // Code-split infrequently used parts out of the initial bundle so the
-// home page ships without the privacy page, the cookie banner, and the
-// background-music widget bolted onto it.
+// home page ships without the privacy page, the cookie banner, secondary
+// routes, and the background-music widget bolted onto it. Only Home is
+// eager — it's the landing page and the loader is already interactive.
 const Privacy = lazy(() =>
   import("@/pages/privacy").then((m) => ({ default: m.default })),
 );
+const Products = lazy(() => import("@/pages/products"));
+const Technologies = lazy(() => import("@/pages/technologies"));
+const Services = lazy(() => import("@/pages/services"));
 const ConsentBanner = lazy(() =>
   import("@/components/ConsentBanner").then((m) => ({ default: m.ConsentBanner })),
+);
+const SmoothScroll = lazy(() =>
+  import("@/components/SmoothScroll").then((m) => ({ default: m.SmoothScroll })),
+);
+const ContactModal = lazy(() =>
+  import("@/components/ContactModal").then((m) => ({ default: m.ContactModal })),
 );
 
 // Match the moment the loader starts sliding up (so hero words begin revealing
@@ -114,7 +119,13 @@ function App() {
           {/* Make the rest of the app inert while the loader is up so
               keyboard focus and screen readers don't leak into hidden UI. */}
           <div {...({ inert: !loaderShown ? "" : undefined } as Record<string, string | undefined>)}>
-            <SmoothScroll />
+            {/* Lenis + ContactModal + ConsentBanner are all lazy so none
+                of them block first paint of the hero. */}
+            {loaderShown && (
+              <Suspense fallback={null}>
+                <SmoothScroll />
+              </Suspense>
+            )}
             <CustomCursor />
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
               <ScrollToTop />
@@ -122,7 +133,9 @@ function App() {
                 <Router />
               </Suspense>
             </WouterRouter>
-            <ContactModal />
+            <Suspense fallback={null}>
+              <ContactModal />
+            </Suspense>
             <Toaster />
             {loaderShown && (
               <Suspense fallback={null}>

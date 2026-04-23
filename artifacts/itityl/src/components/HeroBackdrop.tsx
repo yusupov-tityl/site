@@ -1,16 +1,43 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { m as motion, useScroll, useTransform } from "framer-motion";
 import { prefersReducedMotion } from "@/lib/motion";
+
+// Skip the video background entirely on small screens and slow connections —
+// mobile users get the WebP poster only. Shaves ~1.3–2 MB off the critical
+// payload where it matters most (mobile data / 3G).
+function shouldLoadVideo(): boolean {
+  if (typeof window === "undefined") return false;
+  if (window.matchMedia("(max-width: 767px)").matches) return false;
+  const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  if (conn?.saveData) return false;
+  if (conn?.effectiveType && /2g|slow-2g/i.test(conn.effectiveType)) return false;
+  return true;
+}
 
 export function HeroBackdrop() {
   const ref = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [loadVideo, setLoadVideo] = useState(false);
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 800], [0, 200]);
   const scale = useTransform(scrollY, [0, 800], [1, 1.15]);
   const opacity = useTransform(scrollY, [0, 600], [1, 0.2]);
 
+  // Defer the video load until after first paint so FCP / LCP aren't held up
+  // by a 1–2 MB file decision. On mobile we skip the video entirely.
   useEffect(() => {
+    if (!shouldLoadVideo()) return;
+    const idle = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+    if (idle) {
+      idle(() => setLoadVideo(true), { timeout: 1500 });
+      return;
+    }
+    const t = setTimeout(() => setLoadVideo(true), 400);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!loadVideo) return;
     const v = videoRef.current;
     if (!v) return;
     v.muted = true;
@@ -25,7 +52,7 @@ export function HeroBackdrop() {
         document.addEventListener("click", onClick);
       });
     }
-  }, []);
+  }, [loadVideo]);
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
@@ -101,21 +128,36 @@ export function HeroBackdrop() {
       className="absolute inset-0 -z-0 overflow-hidden pointer-events-none"
       style={{ y, scale, opacity }}
     >
-      {/* Video background.
-          `preload="metadata"` + poster frame lets first paint finish
-          instantly without blocking on the 4MB clip; the video starts
-          decoding on its own once enough data arrives. Visual identical. */}
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        poster={`${import.meta.env.BASE_URL}hero-bg.jpg`}
+      {/* WebP poster is always drawn first — it's the LCP element on mobile
+          and during the brief window before the video's first frame decodes
+          on desktop. Explicit dims keep CLS at 0. */}
+      <img
+        src={`${import.meta.env.BASE_URL}hero-poster.webp`}
+        alt=""
+        width={1600}
+        height={900}
+        decoding="async"
+        fetchPriority="high"
         className="absolute inset-0 w-full h-full object-cover"
-        src={`${import.meta.env.BASE_URL}hero-bg.mp4`}
       />
+      {/* Video background — mounted only after first paint on non-mobile,
+          non-saveData connections. WebM ships 40% smaller than the MP4 for
+          Chrome/Firefox; Safari falls back to MP4. */}
+      {loadVideo && (
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster={`${import.meta.env.BASE_URL}hero-poster.webp`}
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src={`${import.meta.env.BASE_URL}hero-bg.webm`} type="video/webm" />
+          <source src={`${import.meta.env.BASE_URL}hero-bg.mp4`} type="video/mp4" />
+        </video>
+      )}
       {/* Darken overlay for text legibility */}
       <div className="absolute inset-0 bg-black/45" />
       <div className="absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-t from-black/70 to-transparent" />

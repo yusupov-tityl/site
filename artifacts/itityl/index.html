@@ -1,13 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>itityl.com</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0A0A0A" />
+    <title>Ай-Титул — прикладные ИИ-решения для бизнеса и B2G</title>
+    <meta name="description" content="Ай-Титул внедряет прикладные ИИ-решения: LLM, RAG, ИИ-агенты, интеллектуальная канцелярия, компьютерное зрение. AI-консалтинг, обследование, пилоты и разработка для корпоративной среды." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ай-Титул — прикладные ИИ-решения для бизнеса и B2G" />
+    <meta property="og:description" content="AI-консалтинг, обследование процессов, пилоты и разработка ИИ-решений для документов, знаний и корпоративных процессов." />
+    <meta property="og:image" content="/opengraph.jpg" />
+    <meta property="og:url" content="https://itityl.ru/" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="canonical" href="https://itityl.ru/" />
+
+    <!-- Preload the LCP element so the browser fetches it in parallel with
+         the HTML/JS instead of waiting for the framer-motion tree to mount. -->
+    <link rel="preload" as="image" href="/hero-poster.webp" fetchpriority="high" />
+
+    <!-- Non-blocking font load: print+onload flips the stylesheet to `all`
+         only after it has finished downloading, so rendering isn't held up
+         by the CSSOM. The <noscript> covers JS-disabled clients. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>
