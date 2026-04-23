@@ -17,7 +17,7 @@ import { VolumeX } from "lucide-react";
 
 const NUM_BARS = 3;
 const VOLUME_STORAGE_KEY = "itityl:bg-music-volume";
-const DEFAULT_VOLUME = 0.1;
+const DEFAULT_VOLUME = 0.15;
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
