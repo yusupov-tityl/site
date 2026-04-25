@@ -53,10 +53,19 @@ export function EntryGate({ onEnter }: Props) {
     };
   }, []);
 
-  const handleEnter = () => {
-    if (!ready || leaving) return;
+  const handleEnter = (e?: React.SyntheticEvent) => {
+    if (leaving) return;
+    // We deliberately do NOT gate on `ready` — once the button is visible
+    // the user expects every tap to register. On slow devices the loader
+    // animation might still be wrapping up, but the click should fire
+    // immediately. If we're not yet "ready", we just skip the loader-end
+    // wait and proceed.
+    if (e?.preventDefault) {
+      // On iOS, preventing the default click after a touchend avoids the
+      // duplicate "ghost click" 300ms later that can re-trigger handlers.
+      e.preventDefault();
+    }
     setLeaving(true);
-    // Dispatch a custom event in case anything else wants to listen.
     try {
       document.dispatchEvent(new CustomEvent("itityl:enter"));
     } catch {
@@ -149,11 +158,13 @@ export function EntryGate({ onEnter }: Props) {
                 key="enter-btn"
                 type="button"
                 onClick={handleEnter}
+                onTouchEnd={handleEnter}
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.7, ease: easeOutExpo }}
                 className="group relative z-10 flex items-center justify-center"
+                style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
                 aria-label="Войти на сайт"
                 data-cursor="view"
                 data-cursor-label="Войти"
