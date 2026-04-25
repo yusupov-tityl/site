@@ -146,10 +146,19 @@ export default function Privacy() {
           <Link
             href="/"
             data-cursor="link"
-            className="flex items-center gap-2 text-xl font-heading font-extrabold uppercase tracking-wider"
+            className="flex items-end gap-1"
           >
-            <span>АЙ-ТИТУЛ</span>
-            <span className="text-amber-400">|</span>
+            <img
+              src={`${import.meta.env.BASE_URL}logo.svg`}
+              alt="Ай-Титул"
+              width={48}
+              height={48}
+              className="h-10 md:h-12 w-auto select-none"
+              draggable={false}
+            />
+            <span className="text-amber-400 text-xl font-heading font-extrabold leading-none mb-1" aria-hidden>
+              |
+            </span>
           </Link>
         </Magnetic>
 

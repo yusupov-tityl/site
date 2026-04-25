@@ -36,6 +36,27 @@ const SmoothScroll = lazy(() =>
 const ContactModal = lazy(() =>
   import("@/components/ContactModal").then((m) => ({ default: m.ContactModal })),
 );
+// Hoisted out of home.tsx so the music + control pill keep playing across
+// route changes (privacy, products, services, etc.) instead of re-mounting
+// and dropping the audio every time.
+const BgMusic = lazy(() =>
+  import("@/components/BgMusic").then((m) => ({ default: m.BgMusic })),
+);
+
+// Once the user has passed the loader in this browser session we don't
+// want to show it again — including when they navigate to /privacy or
+// hit refresh on a deep link. Stored in sessionStorage so a fresh tab
+// still gets the intro.
+const ENTRY_GATE_FLAG = "itityl:entry-gate-passed";
+
+function readEntryGatePassed(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(ENTRY_GATE_FLAG) === "1";
+  } catch {
+    return false;
+  }
+}
 
 // Match the moment the loader starts sliding up (so hero words begin revealing
 // underneath while the curtain is still moving away).
@@ -92,7 +113,7 @@ function Router() {
 }
 
 function App() {
-  const [loaderShown, setLoaderShown] = useState(false);
+  const [loaderShown, setLoaderShown] = useState<boolean>(() => readEntryGatePassed());
 
   useEffect(() => {
     if (loaderShown) return;
@@ -103,6 +124,11 @@ function App() {
   }, [loaderShown]);
 
   const handleDone = () => {
+    try {
+      window.sessionStorage.setItem(ENTRY_GATE_FLAG, "1");
+    } catch {
+      // ignore — sessionStorage may be blocked in private mode
+    }
     setLoaderShown(true);
   };
 
@@ -136,6 +162,13 @@ function App() {
             <Suspense fallback={null}>
               <ContactModal />
             </Suspense>
+            {/* Global background music — kept at the App level so toggling
+                between routes never tears down the audio element. */}
+            {loaderShown && (
+              <Suspense fallback={null}>
+                <BgMusic src={`${import.meta.env.BASE_URL}bg-music.mp3`} />
+              </Suspense>
+            )}
             <Toaster />
             {loaderShown && (
               <Suspense fallback={null}>

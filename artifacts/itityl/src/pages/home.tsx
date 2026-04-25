@@ -20,14 +20,10 @@ import { MarqueeRow } from "@/components/MarqueeRow";
 import { useIntro } from "@/lib/intro-context";
 import { useSeo } from "@/lib/useSeo";
 
-// Code-split the contact form (pulls in react-hook-form + zod + Turnstile)
-// and the background-music widget (pulls in Web Audio glue). Both live
-// below the fold and don't need to be in the initial paint path.
+// Code-split the contact form (pulls in react-hook-form + zod + Turnstile).
+// BgMusic is now mounted globally in App.tsx so it survives route changes.
 const ContactForm = lazy(() =>
   import("@/components/ContactForm").then((m) => ({ default: m.ContactForm })),
-);
-const BgMusic = lazy(() =>
-  import("@/components/BgMusic").then((m) => ({ default: m.BgMusic })),
 );
 
 const whyAI = [
@@ -274,10 +270,6 @@ export default function Home() {
         className="fixed top-0 left-0 right-0 h-[2px] bg-amber-400/80 origin-left z-[100]"
         style={{ scaleX: scrollYProgress }}
       />
-      <Suspense fallback={null}>
-        <BgMusic src={`${import.meta.env.BASE_URL}bg-music.mp3`} />
-      </Suspense>
-
       {/* ── NAV ── */}
       <nav className="group fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-10 py-5 border-b border-white/5 hover:border-white/15 bg-black/15 backdrop-blur-[3px] hover:bg-black/70 hover:backdrop-blur-md transition-[background-color,backdrop-filter,border-color] duration-300">
         <Magnetic strength={0.25}>
