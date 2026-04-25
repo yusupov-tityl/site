@@ -162,13 +162,15 @@ function App() {
             <Suspense fallback={null}>
               <ContactModal />
             </Suspense>
-            {/* Global background music — kept at the App level so toggling
-                between routes never tears down the audio element. */}
-            {loaderShown && (
-              <Suspense fallback={null}>
-                <BgMusic src={`${import.meta.env.BASE_URL}bg-music.mp3`} />
-              </Suspense>
-            )}
+            {/* Global background music — mounted eagerly (not gated by
+                loaderShown) so the very click that dismisses the EntryGate
+                IS the user gesture that unmutes the track. If we waited
+                until after the loader, BgMusic would mount one frame too
+                late and the unmute would only fire on the user's NEXT
+                interaction with the page. */}
+            <Suspense fallback={null}>
+              <BgMusic src={`${import.meta.env.BASE_URL}bg-music.mp3`} />
+            </Suspense>
             <Toaster />
             {loaderShown && (
               <Suspense fallback={null}>
