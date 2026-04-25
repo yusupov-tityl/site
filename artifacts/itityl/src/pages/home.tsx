@@ -205,10 +205,10 @@ const team: {
   objectPosition?: string;
 }[] = [
   { name: "Павел", role: "CEO", video: pavelVideo },
-  { name: "Олег", role: "Руководитель ИИ-проектов", video: olegVideo },
+  { name: "Олег", role: "CPO", video: olegVideo },
   {
     name: "Максим",
-    role: "Главный разработчик",
+    role: "CTO",
     video: maximVideo,
     // Source frames Maxim's head left-of-center; nudge the visible
     // area so the head lines up with the card center.
@@ -508,7 +508,7 @@ export default function Home() {
               {[
                 { val: "10+", label: "Крупных проектов" },
                 { val: "18+", label: "Заказчиков" },
-                { val: "8+", label: "Лет в ИИ" },
+                { val: "5+", label: "Лет в ИИ" },
                 { val: "20+", label: "Экспертов" },
               ].map((s, i) => (
                 <motion.div key={i} variants={fadeUp}>
