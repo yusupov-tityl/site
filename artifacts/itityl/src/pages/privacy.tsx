@@ -156,9 +156,7 @@ export default function Privacy() {
               className="h-10 md:h-12 w-auto select-none"
               draggable={false}
             />
-            <span className="text-amber-400 text-xl font-heading font-extrabold leading-none mb-1" aria-hidden>
-              |
-            </span>
+            <span className="logo-cursor" aria-hidden>|</span>
           </Link>
         </Magnetic>
 

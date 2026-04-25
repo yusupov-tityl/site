@@ -17,7 +17,7 @@ import { VolumeX } from "lucide-react";
 
 const NUM_BARS = 3;
 const VOLUME_STORAGE_KEY = "itityl:bg-music-volume";
-const DEFAULT_VOLUME = 0.1;
+const DEFAULT_VOLUME = 0.05;
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
@@ -247,11 +247,17 @@ export function BgMusic({ src }: { src: string }) {
     const next = !soundOn;
     setSoundOn(next);
     if (next) {
+      // Order matters: set muted=false FIRST so the existing audio element
+      // becomes audible on the very next frame. Audio has been playing
+      // silently from mount, so unmuting is instant — no network fetch,
+      // no decode latency. play() and analyser wiring are fired after the
+      // unmute and don't gate the user-perceived "sound on" moment.
       a.muted = false;
+      ensureAnalyser();
       ctxRef.current?.resume().catch(() => {});
-      a.play()
-        .then(() => ensureAnalyser())
-        .catch(() => {});
+      // play() is a no-op if audio is already playing; only needed if the
+      // browser paused it in the background.
+      if (a.paused) a.play().catch(() => {});
     } else {
       a.muted = true;
       // Bars are hidden anyway when soundOn is false — don't keep reading
@@ -290,10 +296,12 @@ export function BgMusic({ src }: { src: string }) {
 
   return (
     <>
-      {/* preload="metadata" — fetch only ~10KB of headers on mount instead
-          of the full 2MB mp3; the rest streams in once the user actually
-          unmutes via the EntryGate click. */}
-      <audio ref={audioRef} src={src} autoPlay muted loop preload="metadata" />
+      {/* preload="auto" — buffer the full track up-front so toggling sound
+          ON is instant. BgMusic is only mounted after the EntryGate is
+          dismissed (see App.tsx), so this fetch happens while the user is
+          already interacting with the page, not during the critical
+          first-paint window. */}
+      <audio ref={audioRef} src={src} autoPlay muted loop preload="auto" />
       <style>{`
         .bg-music-pill { height: 44px; }
         @media (min-width: 768px) {
