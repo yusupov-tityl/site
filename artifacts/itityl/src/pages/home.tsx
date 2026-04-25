@@ -250,10 +250,12 @@ const logos = [
 ];
 
 export default function Home() {
-  useSeo(
-    "Ай-Титул — прикладные ИИ-решения для бизнеса и B2G",
-    "AI-консалтинг, обследование процессов, пилоты и разработка ИИ-решений для документов, знаний и корпоративных процессов. LLM, RAG, ИИ-агенты, компьютерное зрение.",
-  );
+  useSeo({
+    title: "Ай-Титул — прикладные ИИ-решения для бизнеса и B2G",
+    description:
+      "AI-консалтинг, обследование процессов, пилоты и разработка ИИ-решений для документов, знаний и корпоративных процессов. LLM, RAG, ИИ-агенты, компьютерное зрение.",
+    path: "/",
+  });
   const { heroDelay: HERO_DELAY } = useIntro();
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress: heroProgress } = useScroll({

@@ -15,6 +15,7 @@ import { Breadcrumbs } from "@/components/landing/Breadcrumbs";
 import { CTAButton } from "@/components/landing/CTAButton";
 import { MarqueeRow } from "@/components/MarqueeRow";
 import { useContactModal } from "@/lib/contact-modal";
+import { BreadcrumbSchema } from "@/components/StructuredData";
 
 const services = [
   { t: "AI-консалтинг и выявление сценариев", d: "Помогаем определить, где искусственный интеллект может дать практический эффект, какие задачи стоит запускать в первую очередь и как подойти к внедрению без лишних гипотез.", to: "/services/ai-consulting" },
@@ -57,14 +58,23 @@ const faq = [
 ];
 
 export default function Services() {
-  useSeo(
-    "Услуги по разработке и внедрению ИИ-решений для бизнеса и B2G — Ай-Титул",
-    "AI-консалтинг, обследование процессов, формирование портфеля инициатив, пилоты, разработка, интеграция и сопровождение ИИ-решений.",
-  );
+  useSeo({
+    title:
+      "Услуги Ай-Титул — обследование, пилоты, разработка ИИ-решений",
+    description:
+      "AI-консалтинг, обследование процессов, формирование портфеля инициатив, пилоты, разработка, интеграция и сопровождение ИИ-решений для бизнеса и B2G.",
+    path: "/services",
+  });
 
   const { open: openModal } = useContactModal();
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-amber-400 selection:text-black overflow-x-hidden">
+      <BreadcrumbSchema
+        items={[
+          { name: "Главная", url: "/" },
+          { name: "Услуги", url: "/services" },
+        ]}
+      />
       <SiteNav />
       <Breadcrumbs items={[{ label: "Главная", href: "/" }, { label: "Услуги" }]} />
       <PageHero

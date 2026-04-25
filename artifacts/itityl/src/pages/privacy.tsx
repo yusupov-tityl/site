@@ -4,6 +4,8 @@ import { m as motion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { Magnetic } from "@/components/Magnetic";
 import { easeOutExpo } from "@/lib/motion";
+import { useSeo } from "@/lib/useSeo";
+import { BreadcrumbSchema } from "@/components/StructuredData";
 
 const sections = [
   {
@@ -134,12 +136,24 @@ const sections = [
 ];
 
 export default function Privacy() {
+  useSeo({
+    title: "Политика конфиденциальности — Ай-Титул",
+    description:
+      "Как ООО «АЙ-ТИТУЛ» обрабатывает персональные данные посетителей сайта itityl.ru: цели, основания, сроки и права субъектов ПДн.",
+    path: "/privacy",
+  });
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   return (
     <div className="min-h-screen bg-black text-white">
+      <BreadcrumbSchema
+        items={[
+          { name: "Главная", url: "/" },
+          { name: "Политика конфиденциальности", url: "/privacy" },
+        ]}
+      />
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-10 py-5 border-b border-white/10 bg-black/70 backdrop-blur-md">
         <Magnetic strength={0.25}>

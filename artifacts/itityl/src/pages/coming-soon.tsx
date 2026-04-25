@@ -15,7 +15,11 @@ type Props = {
 };
 
 export function ComingSoon({ title, parentLabel, parentTo }: Props) {
-  useSeo(`${title} — Ай-Титул`, `${title}. Раздел в работе.`);
+  useSeo({
+    title: `${title} — Ай-Титул`,
+    description: `${title}. Раздел в работе.`,
+    noindex: true,
+  });
   const slug = title.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, "-").slice(0, 40);
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-amber-400 selection:text-black flex flex-col">

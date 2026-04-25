@@ -15,6 +15,7 @@ import { NavList } from "@/components/landing/NavList";
 import { Breadcrumbs } from "@/components/landing/Breadcrumbs";
 import { MarqueeRow } from "@/components/MarqueeRow";
 import { useContactModal } from "@/lib/contact-modal";
+import { BreadcrumbSchema } from "@/components/StructuredData";
 
 const products = [
   {
@@ -69,14 +70,23 @@ const faq = [
 const marquee = ["документы", "знания", "процессы", "канцелярия", "RAG", "агенты", "автоматизация"];
 
 export default function Products() {
-  useSeo(
-    "Продукты Ай-Титул — прикладные ИИ-решения для документов, знаний и процессов",
-    "Продуктовая линейка Ай-Титул: ИИ-агенты, интеллектуальная канцелярия, аналитик документов, RAG по внутренним материалам для корпоративной среды и B2G.",
-  );
+  useSeo({
+    title:
+      "Продукты Ай-Титул — ИИ-агенты, RAG, Smart-Office, аналитик документов",
+    description:
+      "Продуктовая линейка Ай-Титул: ИИ-агенты, интеллектуальная канцелярия, аналитик документов, RAG по внутренним материалам для корпоративной среды и B2G.",
+    path: "/products",
+  });
 
   const { open: openModal } = useContactModal();
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-amber-400 selection:text-black overflow-x-hidden">
+      <BreadcrumbSchema
+        items={[
+          { name: "Главная", url: "/" },
+          { name: "Продукты", url: "/products" },
+        ]}
+      />
       <SiteNav />
       <Breadcrumbs items={[{ label: "Главная", href: "/" }, { label: "Продукты" }]} />
       <PageHero
