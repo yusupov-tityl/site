@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { fadeUp, lineDraw } from "@/lib/motion";
 import { useContactModal } from "@/lib/contact-modal";

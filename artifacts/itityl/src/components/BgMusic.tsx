@@ -64,6 +64,10 @@ export function BgMusic({ src }: { src: string }) {
   const gainRef = useRef<GainNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const startedRef = useRef(false);
+  // Tracks whether the AudioContext has been unlocked inside a real
+  // user gesture. Once true, subsequent `source.start()` calls work
+  // even outside a gesture (iOS only blocks the FIRST scheduling).
+  const unlockedRef = useRef(false);
   const barsRef = useRef<(HTMLSpanElement | null)[]>([]);
   const rafRef = useRef<number>(0);
   const loopRunningRef = useRef(false);
@@ -73,6 +77,10 @@ export function BgMusic({ src }: { src: string }) {
   const [volume, setVolume] = useState<number>(() => readStoredVolume());
   const [sliderOpen, setSliderOpen] = useState(false);
 
+  // Track whether Web Audio is even available — if not, we still render
+  // the pill (visual continuity) but mute interactions.
+  const [audioSupported, setAudioSupported] = useState(true);
+
   // ── Pre-fetch + pre-decode on mount ────────────────────────────────
   // Fetches the mp3 in parallel with the EntryGate loader, decodes it
   // into an AudioBuffer, and parks it in a ref ready for playback. No
@@ -80,9 +88,19 @@ export function BgMusic({ src }: { src: string }) {
   useEffect(() => {
     let cancelled = false;
     const Ctx = getAudioContextClass();
-    if (!Ctx) return;
+    if (!Ctx) {
+      setAudioSupported(false);
+      return;
+    }
 
-    const ctx = new Ctx();
+    let ctx: AudioContext;
+    try {
+      ctx = new Ctx();
+    } catch {
+      // Some old Android WebViews throw on construction.
+      setAudioSupported(false);
+      return;
+    }
     ctxRef.current = ctx;
 
     fetch(src)
@@ -96,6 +114,13 @@ export function BgMusic({ src }: { src: string }) {
       .then((decoded) => {
         if (cancelled) return;
         bufferRef.current = decoded;
+        // If the user already clicked through the gate before decode
+        // finished, the gesture handler set `unlockedRef` and we can
+        // start the real source NOW without a fresh gesture (the
+        // silent buffer below already unlocked the context for us).
+        if (unlockedRef.current && !startedRef.current) {
+          startSource(decoded);
+        }
       })
       .catch(() => {
         // Network failure or decode failure — the pill simply won't
@@ -108,37 +133,68 @@ export function BgMusic({ src }: { src: string }) {
   }, [src]);
 
   // ── Start playback on first user gesture ───────────────────────────
-  // The same click that dismisses the EntryGate IS the gesture that
-  // unlocks audio on iOS. We listen at the document level with capture
-  // so we beat the EntryGate's own onClick handler to the punch.
+  // CRITICAL on iOS / Telegram WebView: the FIRST audio scheduling has
+  // to happen synchronously inside the gesture's task. If we await the
+  // buffer decode (or even let setTimeout fire first), the context is
+  // no longer "in a gesture" and source.start() is silently rejected —
+  // the user has to tap a SECOND time to actually hear sound.
+  //
+  // The fix is the well-known "iOS unlock trick": play a 1-sample
+  // silent buffer synchronously inside the gesture. That buffer
+  // unlocks the context permanently, so when the real mp3 finishes
+  // decoding 200–500 ms later we can start it without a fresh gesture.
   useEffect(() => {
     let done = false;
     const start = () => {
       if (done || startedRef.current) return;
       const ctx = ctxRef.current;
-      const buffer = bufferRef.current;
       if (!ctx) return;
       done = true;
 
       // Resume the context (no-op on Chrome, required on iOS).
-      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+      // We don't await — resume() is synchronous-ish on iOS, the
+      // important thing is that we schedule audio in the same task.
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
 
-      // If the buffer hasn't finished decoding yet (very fast clicks
-      // through the loader on a slow network), wait for it. We retry
-      // every 80ms for up to 5s; if it never arrives, silently give up.
-      let waited = 0;
-      const tryStart = () => {
-        const buf = bufferRef.current;
-        if (!buf) {
-          if (waited > 5000) return;
-          waited += 80;
-          window.setTimeout(tryStart, 80);
-          return;
-        }
-        startSource(buf);
-      };
-      if (buffer) startSource(buffer);
-      else tryStart();
+      // ── iOS unlock trick — runs SYNCHRONOUSLY in the gesture ──
+      // A 1-sample silent buffer started at time 0. iOS marks the
+      // context as user-unlocked after this; any future start() —
+      // including ones from microtasks or setTimeout — works fine.
+      try {
+        const silent = ctx.createBuffer(1, 1, 22050);
+        const silentSrc = ctx.createBufferSource();
+        silentSrc.buffer = silent;
+        silentSrc.connect(ctx.destination);
+        silentSrc.start(0);
+        unlockedRef.current = true;
+      } catch {
+        // If even the silent buffer fails, the real one won't help —
+        // fall through and let the polling loop give up gracefully.
+      }
+
+      // Now start the real track. If the buffer is already decoded,
+      // this fires in the SAME tick as the gesture. If not, we poll
+      // (the unlock above means we don't need to be in a gesture
+      // anymore — Safari just needs the buffer ready).
+      const buffer = bufferRef.current;
+      if (buffer) {
+        startSource(buffer);
+      } else {
+        let waited = 0;
+        const tryStart = () => {
+          const buf = bufferRef.current;
+          if (!buf) {
+            if (waited > 8000) return;
+            waited += 80;
+            window.setTimeout(tryStart, 80);
+            return;
+          }
+          startSource(buf);
+        };
+        tryStart();
+      }
 
       cleanup();
     };
@@ -360,7 +416,31 @@ export function BgMusic({ src }: { src: string }) {
     };
   }, []);
 
+  // If the browser/WebView doesn't support Web Audio at all, render
+  // nothing — the rest of the site stays exactly the same and we
+  // don't ship a broken pill that does nothing on tap.
+  if (!audioSupported) return null;
+
   const volumePct = Math.round(volume * 100);
+
+  // On touch devices the pill toggle handles sound on/off. We make a
+  // long-press (or a second tap on an already-on pill) open the slider
+  // — but the simplest UX is: on coarse pointer, also open the slider
+  // briefly when sound is toggled. We expose a `data-coarse` flag so
+  // the click handler can branch.
+  const isCoarse =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(pointer: coarse)").matches;
+  const onPillClick = () => {
+    toggle();
+    if (isCoarse) {
+      openSlider();
+      // Auto-close after 2.5 s so the slider doesn't camp on top of
+      // page content on mobile.
+      window.setTimeout(() => setSliderOpen(false), 2500);
+    }
+  };
 
   return (
     <>
@@ -412,7 +492,11 @@ export function BgMusic({ src }: { src: string }) {
         }
       `}</style>
       <div
-        className="fixed bottom-6 right-6 z-[90]"
+        className="fixed right-6 z-[90]"
+        // bottom = max(safe-area, 24px) so the pill clears the home-
+        // indicator on iPhones without floating absurdly high on
+        // browsers that don't expose env() (it falls back to 24px).
+        style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 1.5rem)" }}
         onMouseEnter={openSlider}
         onMouseLeave={scheduleCloseSlider}
       >
@@ -468,7 +552,7 @@ export function BgMusic({ src }: { src: string }) {
           type="button"
           aria-label={soundOn ? "Sound off" : "Sound on"}
           title={soundOn ? "Sound off" : "Sound on"}
-          onClick={toggle}
+          onClick={onPillClick}
           data-cursor="link"
           className={`bg-music-pill pl-4 pr-5 flex items-center gap-3
             rounded-full border backdrop-blur-md transition-all duration-300

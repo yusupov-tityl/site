@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { SplitText } from "@/components/SplitText";

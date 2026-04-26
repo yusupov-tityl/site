@@ -5,7 +5,6 @@ import { MotionConfig, LazyMotion, domAnimation } from "framer-motion";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import Home from "@/pages/home";
 import { ComingSoon } from "@/pages/coming-soon";
 import { CustomCursor } from "@/components/CustomCursor";
 import { EntryGate } from "@/components/EntryGate";
@@ -18,10 +17,11 @@ import { OrganizationSchema, WebSiteSchema } from "@/components/StructuredData";
 // the same cache (ContactForm hooks need this via @workspace/api-client-react).
 const queryClient = new QueryClient();
 
-// Code-split infrequently used parts out of the initial bundle so the
-// home page ships without the privacy page, the cookie banner, secondary
-// routes, and the background-music widget bolted onto it. Only Home is
-// eager — it's the landing page and the loader is already interactive.
+// All routes are code-split so the initial bundle ships only the
+// EntryGate + plumbing. Home is requested in parallel with the
+// EntryGate's 1.6s loader, so by the time the user clicks "Войти"
+// the chunk is already in cache and there's no perceived delay.
+const Home = lazy(() => import("@/pages/home"));
 const Privacy = lazy(() =>
   import("@/pages/privacy").then((m) => ({ default: m.default })),
 );

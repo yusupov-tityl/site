@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { fadeUp } from "@/lib/motion";
 import { useSeo } from "@/lib/useSeo";
 import { SiteNav } from "@/components/landing/SiteNav";
