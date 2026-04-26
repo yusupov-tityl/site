@@ -15,8 +15,11 @@
  */
 
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
-const YM_ID_RAW = import.meta.env.VITE_YM_COUNTER_ID as string | undefined;
-const YM_ID = YM_ID_RAW ? Number.parseInt(YM_ID_RAW, 10) : NaN;
+// Yandex.Metrica counter ID is hardcoded in index.html as part of the
+// official async snippet (it has to fire before main.tsx loads, so an
+// env var doesn't help). We just mirror the same number here so SPA
+// route-change page-views fire under the right counter.
+const YM_ID = 108772201;
 
 /**
  * Initialise Sentry. Dynamically imported so the SDK isn't shipped to
@@ -49,52 +52,12 @@ export async function initSentry(): Promise<void> {
 }
 
 /**
- * Inject Yandex.Metrica counter. Uses the standard async snippet from
- * metrika.yandex.ru/admin so the network request never blocks first
- * paint. Includes click-map, accurate-bounce-rate and webvisor —
- * standard B2B tracking baseline.
+ * Yandex.Metrica is initialised by the async snippet in index.html
+ * before main.tsx evaluates, so this function is intentionally a
+ * no-op. Kept as an export so main.tsx can call it without a flag.
  */
 export function initYandexMetrica(): void {
-  if (!Number.isFinite(YM_ID) || YM_ID <= 0) return;
-  if (typeof window === "undefined") return;
-
-  // Snippet adapted from metrika.yandex.ru/code/. We avoid the
-  // document.write form (deprecated in modern Chrome) — use a plain
-  // <script> append instead.
-  type Ym = ((id: number, method: string, ...args: unknown[]) => void) & {
-    a?: unknown[];
-    l?: number;
-  };
-  const w = window as unknown as { ym?: Ym; Ya?: unknown };
-  if (!w.ym) {
-    const ym: Ym = function (...args: unknown[]) {
-      (ym.a = ym.a || []).push(args);
-    } as Ym;
-    ym.l = Date.now();
-    w.ym = ym;
-  }
-
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = "https://mc.yandex.ru/metrika/tag.js";
-  document.head.appendChild(script);
-
-  w.ym!(YM_ID, "init", {
-    clickmap: true,
-    trackLinks: true,
-    accurateTrackBounce: true,
-    webvisor: true,
-  });
-
-  // <noscript> pixel for users with JS disabled / scrapers — gives
-  // Metrica a chance to register the visit anyway.
-  const ns = document.createElement("noscript");
-  const img = document.createElement("img");
-  img.src = `https://mc.yandex.ru/watch/${YM_ID}`;
-  img.style.cssText = "position:absolute;left:-9999px;";
-  img.alt = "";
-  ns.appendChild(img);
-  document.body.appendChild(ns);
+  /* injected via index.html */
 }
 
 /**
