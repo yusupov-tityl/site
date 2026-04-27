@@ -11,7 +11,7 @@ import { EntryGate } from "@/components/EntryGate";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { ContactModalProvider } from "@/lib/contact-modal";
 import { IntroContext } from "@/lib/intro-context";
-import { OrganizationSchema, WebSiteSchema } from "@/components/StructuredData";
+import { OrganizationSchema, WebSiteSchema, LocalBusinessSchema } from "@/components/StructuredData";
 
 // Shared singleton so every useMutation/useQuery in the app plugs into
 // the same cache (ContactForm hooks need this via @workspace/api-client-react).
@@ -144,6 +144,7 @@ function App() {
           <ContactModalProvider>
           <OrganizationSchema />
           <WebSiteSchema />
+          <LocalBusinessSchema />
           {!loaderShown && <EntryGate onEnter={handleDone} />}
           {/* Make the rest of the app inert while the loader is up so
               keyboard focus and screen readers don't leak into hidden UI. */}

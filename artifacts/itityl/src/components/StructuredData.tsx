@@ -28,7 +28,11 @@ function StructuredDataNode({ id, data }: { id: string; data: JsonLd }) {
     return () => {
       // Don't remove globally-managed nodes on every re-render — only
       // remove the temporary per-route ones (they re-create on next page).
-      if (id !== "ld-org" && id !== "ld-website") {
+      if (
+        id !== "ld-org" &&
+        id !== "ld-website" &&
+        id !== "ld-localbusiness"
+      ) {
         el?.remove();
       }
     };
@@ -71,6 +75,45 @@ export function OrganizationSchema() {
     taxID: "9725182971",
   };
   return <StructuredDataNode id="ld-org" data={data} />;
+}
+
+/**
+ * LocalBusiness schema — gives Yandex the data it needs for the
+ * Knowledge Panel / Yandex.Maps / Yandex.Бизнес matching. Mounted once
+ * globally alongside Organization.
+ */
+export function LocalBusinessSchema() {
+  const data: JsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "@id": "https://itityl.ru/#localbusiness",
+    name: "Ай-Титул",
+    legalName: "ООО «АЙ-ТИТУЛ»",
+    url: "https://itityl.ru",
+    image: "https://itityl.ru/opengraph.jpg",
+    logo: "https://itityl.ru/logo.svg",
+    telephone: "+7-993-338-43-13",
+    email: "pochta@i-tityl.ru",
+    priceRange: "$$$",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "пр-кт Андропова, д. 18, к. 1, помещ. 8/8",
+      addressLocality: "Москва",
+      postalCode: "115432",
+      addressCountry: "RU",
+    },
+    areaServed: { "@type": "Country", name: "Россия" },
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "09:00",
+        closes: "19:00",
+      },
+    ],
+    taxID: "9725182971",
+  };
+  return <StructuredDataNode id="ld-localbusiness" data={data} />;
 }
 
 /**
@@ -164,6 +207,60 @@ export function ItemListSchema({
     })),
   };
   return <StructuredDataNode id={id} data={data} />;
+}
+
+/**
+ * Article schema — for case studies, blog posts, press releases.
+ * Pass datePublished as ISO 8601 ("2025-03-14"). Ай-Титул is the
+ * default publisher; override only if reposting.
+ */
+export function ArticleSchema({
+  headline,
+  description,
+  url,
+  image,
+  datePublished,
+  dateModified,
+  author,
+}: {
+  headline: string;
+  description: string;
+  url: string;
+  image?: string;
+  datePublished: string;
+  dateModified?: string;
+  author?: string;
+}) {
+  const data: JsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline,
+    description,
+    url: url.startsWith("http") ? url : `https://itityl.ru${url}`,
+    ...(image
+      ? {
+          image: image.startsWith("http") ? image : `https://itityl.ru${image}`,
+        }
+      : {}),
+    datePublished,
+    dateModified: dateModified ?? datePublished,
+    author: {
+      "@type": "Organization",
+      name: author ?? "Ай-Титул",
+      url: "https://itityl.ru",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Ай-Титул",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://itityl.ru/logo.svg",
+      },
+    },
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    inLanguage: "ru-RU",
+  };
+  return <StructuredDataNode id="ld-article" data={data} />;
 }
 
 /**
