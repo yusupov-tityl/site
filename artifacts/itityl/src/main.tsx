@@ -8,6 +8,10 @@ import { initSentry, initYandexMetrica } from "./lib/telemetry";
 // connection could land before the BgMusic chunk loads, miss the only
 // user-gesture window, and leave audio permanently locked on iOS.
 import "./lib/audio-bootstrap";
+// Same pattern for <video> — Telegram / Yandex WebView refuses muted
+// autoplay; this listens for the first gesture and unlocks every
+// <video muted> on the page (incl. lazy-mounted ones via MutationObserver).
+import "./lib/video-bootstrap";
 
 // Telemetry boots before React renders so any error in mount itself
 // is captured. Both calls are no-ops if env vars are unset.
