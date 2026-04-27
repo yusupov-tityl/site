@@ -12,7 +12,7 @@ import { CTASection } from "@/components/landing/CTASection";
 import { Breadcrumbs } from "@/components/landing/Breadcrumbs";
 import { CTAButton } from "@/components/landing/CTAButton";
 import { MarqueeRow } from "@/components/MarqueeRow";
-import { BreadcrumbSchema } from "@/components/StructuredData";
+import { BreadcrumbSchema, FAQPageSchema } from "@/components/StructuredData";
 
 const directions = [
   { t: "LLM и работа с текстом", d: "Большие языковые модели для анализа документов, классификации, маршрутизации, поиска по знаниям, подготовки ответов и поддержки внутренних сервисных сценариев." },
@@ -47,10 +47,9 @@ const faq = [
 
 export default function Technologies() {
   useSeo({
-    title:
-      "Технологии Ай-Титул — LLM, RAG, Document AI, ML, компьютерное зрение",
+    title: "Технологии ИИ — LLM, RAG, Document AI, компьютерное зрение | Ай-Титул",
     description:
-      "Прикладные ИИ-технологии для корпоративных задач: большие языковые модели, поиск по документам (RAG), компьютерное зрение, видеоаналитика и прикладной ML.",
+      "Прикладной стек ИИ для корпоративных задач: LLM и российские модели, RAG по документам, Document AI, видеоаналитика, ML. Подбираем технологию под процесс и контур.",
     path: "/technologies",
   });
 
@@ -62,6 +61,7 @@ export default function Technologies() {
           { name: "Технологии", url: "/technologies" },
         ]}
       />
+      <FAQPageSchema items={faq} />
       <SiteNav />
       <Breadcrumbs items={[{ label: "Главная", href: "/" }, { label: "Технологии" }]} />
       <PageHero

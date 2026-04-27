@@ -15,7 +15,7 @@ import { Breadcrumbs } from "@/components/landing/Breadcrumbs";
 import { CTAButton } from "@/components/landing/CTAButton";
 import { MarqueeRow } from "@/components/MarqueeRow";
 import { useContactModal } from "@/lib/contact-modal";
-import { BreadcrumbSchema } from "@/components/StructuredData";
+import { BreadcrumbSchema, FAQPageSchema, ItemListSchema } from "@/components/StructuredData";
 
 const services = [
   { t: "AI-консалтинг и выявление сценариев", d: "Помогаем определить, где искусственный интеллект может дать практический эффект, какие задачи стоит запускать в первую очередь и как подойти к внедрению без лишних гипотез.", to: "/services/ai-consulting" },
@@ -59,10 +59,9 @@ const faq = [
 
 export default function Services() {
   useSeo({
-    title:
-      "Услуги Ай-Титул — обследование, пилоты, разработка ИИ-решений",
+    title: "Услуги по внедрению ИИ — обследование, пилоты, разработка | Ай-Титул",
     description:
-      "AI-консалтинг, обследование процессов, формирование портфеля инициатив, пилоты, разработка, интеграция и сопровождение ИИ-решений для бизнеса и B2G.",
+      "Полный цикл внедрения ИИ: AI-консалтинг, обследование процессов, портфель инициатив, пилоты за 4–8 недель, разработка и интеграция в корпоративный контур.",
     path: "/services",
   });
 
@@ -74,6 +73,11 @@ export default function Services() {
           { name: "Главная", url: "/" },
           { name: "Услуги", url: "/services" },
         ]}
+      />
+      <FAQPageSchema items={faq} />
+      <ItemListSchema
+        name="Услуги Ай-Титул в области ИИ"
+        items={services.map((s) => ({ name: s.t, url: s.to, description: s.d }))}
       />
       <SiteNav />
       <Breadcrumbs items={[{ label: "Главная", href: "/" }, { label: "Услуги" }]} />

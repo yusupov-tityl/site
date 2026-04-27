@@ -115,3 +115,86 @@ export function BreadcrumbSchema({
   };
   return <StructuredDataNode id="ld-breadcrumb" data={data} />;
 }
+
+/**
+ * FAQ rich-result schema. Pass the same items you give to FAQAccordion.
+ * Yandex and Google can render expandable Q&A directly in SERP.
+ */
+export function FAQPageSchema({
+  items,
+}: {
+  items: Array<{ q: string; a: string }>;
+}) {
+  const data: JsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((it) => ({
+      "@type": "Question",
+      name: it.q,
+      acceptedAnswer: { "@type": "Answer", text: it.a },
+    })),
+  };
+  return <StructuredDataNode id="ld-faq" data={data} />;
+}
+
+/**
+ * ItemList schema for catalog-style pages (services hub, products hub).
+ * Helps search engines understand the page is a list of offerings and
+ * occasionally enables sitelinks-like rich treatment.
+ */
+export function ItemListSchema({
+  id = "ld-itemlist",
+  name,
+  items,
+}: {
+  id?: string;
+  name: string;
+  items: Array<{ name: string; url: string; description?: string }>;
+}) {
+  const data: JsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name,
+    itemListElement: items.map((it, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: it.name,
+      url: it.url.startsWith("http") ? it.url : `https://itityl.ru${it.url}`,
+      ...(it.description ? { description: it.description } : {}),
+    })),
+  };
+  return <StructuredDataNode id={id} data={data} />;
+}
+
+/**
+ * Service schema for individual service / product detail pages.
+ * Communicates "we offer this service, here's the provider, area, type".
+ */
+export function ServiceSchema({
+  name,
+  description,
+  url,
+  serviceType,
+}: {
+  name: string;
+  description: string;
+  url: string;
+  serviceType?: string;
+}) {
+  const data: JsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name,
+    description,
+    url: url.startsWith("http") ? url : `https://itityl.ru${url}`,
+    ...(serviceType ? { serviceType } : {}),
+    provider: {
+      "@type": "Organization",
+      name: "Ай-Титул",
+      url: "https://itityl.ru",
+    },
+    areaServed: { "@type": "Country", name: "Россия" },
+    inLanguage: "ru-RU",
+  };
+  return <StructuredDataNode id="ld-service" data={data} />;
+}

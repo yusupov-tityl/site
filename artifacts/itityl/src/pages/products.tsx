@@ -15,7 +15,7 @@ import { NavList } from "@/components/landing/NavList";
 import { Breadcrumbs } from "@/components/landing/Breadcrumbs";
 import { MarqueeRow } from "@/components/MarqueeRow";
 import { useContactModal } from "@/lib/contact-modal";
-import { BreadcrumbSchema } from "@/components/StructuredData";
+import { BreadcrumbSchema, FAQPageSchema, ItemListSchema } from "@/components/StructuredData";
 
 const products = [
   {
@@ -71,10 +71,9 @@ const marquee = ["документы", "знания", "процессы", "ка
 
 export default function Products() {
   useSeo({
-    title:
-      "Продукты Ай-Титул — ИИ-агенты, RAG, Smart-Office, аналитик документов",
+    title: "Продукты Ай-Титул — ИИ-агенты, RAG, интеллектуальная канцелярия",
     description:
-      "Продуктовая линейка Ай-Титул: ИИ-агенты, интеллектуальная канцелярия, аналитик документов, RAG по внутренним материалам для корпоративной среды и B2G.",
+      "Готовые ИИ-решения для документов и знаний: ИИ-агенты, интеллектуальная канцелярия, аналитик документов, RAG по внутренним материалам. Внедрение в контуре заказчика.",
     path: "/products",
   });
 
@@ -86,6 +85,11 @@ export default function Products() {
           { name: "Главная", url: "/" },
           { name: "Продукты", url: "/products" },
         ]}
+      />
+      <FAQPageSchema items={faq} />
+      <ItemListSchema
+        name="Продуктовая линейка Ай-Титул"
+        items={products.map((p) => ({ name: p.title, url: p.to, description: p.desc }))}
       />
       <SiteNav />
       <Breadcrumbs items={[{ label: "Главная", href: "/" }, { label: "Продукты" }]} />
