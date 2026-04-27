@@ -28,8 +28,10 @@ import { audioState } from "@/lib/audio-bootstrap";
  */
 
 const NUM_BARS = 3;
-const VOLUME_STORAGE_KEY = "itityl:bg-music-volume";
-const DEFAULT_VOLUME = 0.03;
+// v2 — bumped to invalidate the stale 0.5 default that some early
+// visitors had cached in localStorage from a pre-launch build.
+const VOLUME_STORAGE_KEY = "itityl:bg-music-volume:v2";
+const DEFAULT_VOLUME = 0.05;
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 

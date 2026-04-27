@@ -43,16 +43,41 @@ export function HeroBackdrop() {
     if (!v) return;
     v.muted = true;
     v.playsInline = true;
-    const p = v.play();
-    if (p) {
-      p.catch(() => {
-        const onClick = () => {
-          v.play();
-          document.removeEventListener("click", onClick);
-        };
-        document.addEventListener("click", onClick);
-      });
-    }
+    // Belt + suspenders for older iOS WebKit which honours the legacy
+    // attribute name. React strips unknown DOM props, so set via attr.
+    v.setAttribute("webkit-playsinline", "true");
+
+    const tryPlay = () => {
+      const p = v.play();
+      if (p && typeof p.then === "function") {
+        p.catch(() => {
+          /* will be retried by listeners below */
+        });
+      }
+    };
+    tryPlay();
+
+    // Telegram / Yandex / VK in-app WebViews often refuse muted-autoplay
+    // even with playsInline, then refuse the retry from a non-gesture
+    // tick. Hook into:
+    //   1. EntryGate's "itityl:enter" custom event — fires synchronously
+    //      from the same touchend/click that the user just did. Retrying
+    //      here piggybacks on that gesture activation.
+    //   2. A one-shot document click as final fallback for any later tap.
+    const onEnter = () => tryPlay();
+    const onClick = () => {
+      tryPlay();
+      document.removeEventListener("click", onClick);
+    };
+    document.addEventListener("itityl:enter", onEnter);
+    document.addEventListener("click", onClick);
+    // Safari fires this once metadata is in — try again then.
+    v.addEventListener("loadedmetadata", tryPlay, { once: true });
+
+    return () => {
+      document.removeEventListener("itityl:enter", onEnter);
+      document.removeEventListener("click", onClick);
+    };
   }, [loadVideo]);
 
   useEffect(() => {
