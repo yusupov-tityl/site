@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { m as motion, AnimatePresence } from "framer-motion";
 import { VolumeX } from "lucide-react";
+import { audioState } from "@/lib/audio-bootstrap";
 
 /**
  * Background music pill — SOUND ON / SOUND OFF.
@@ -46,28 +47,15 @@ const readStoredVolume = (): number => {
   }
 };
 
-type AudioCtxClass = typeof AudioContext;
-
-function getAudioContextClass(): AudioCtxClass | null {
-  if (typeof window === "undefined") return null;
-  return (
-    window.AudioContext ||
-    (window as unknown as { webkitAudioContext?: AudioCtxClass }).webkitAudioContext ||
-    null
-  );
-}
-
-export function BgMusic({ src }: { src: string }) {
-  const ctxRef = useRef<AudioContext | null>(null);
-  const bufferRef = useRef<AudioBuffer | null>(null);
+// `src` is now unused — audio-bootstrap.ts already fetched the file
+// using import.meta.env.BASE_URL. Kept on the prop signature for
+// backwards-compat with App.tsx; could be removed in a follow-up.
+export function BgMusic(_props: { src?: string }) {
+  void _props;
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const gainRef = useRef<GainNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const startedRef = useRef(false);
-  // Tracks whether the AudioContext has been unlocked inside a real
-  // user gesture. Once true, subsequent `source.start()` calls work
-  // even outside a gesture (iOS only blocks the FIRST scheduling).
-  const unlockedRef = useRef(false);
   const barsRef = useRef<(HTMLSpanElement | null)[]>([]);
   const rafRef = useRef<number>(0);
   const loopRunningRef = useRef(false);
@@ -77,144 +65,35 @@ export function BgMusic({ src }: { src: string }) {
   const [volume, setVolume] = useState<number>(() => readStoredVolume());
   const [sliderOpen, setSliderOpen] = useState(false);
 
-  // Track whether Web Audio is even available — if not, we still render
-  // the pill (visual continuity) but mute interactions.
-  const [audioSupported, setAudioSupported] = useState(true);
+  // True when Web Audio is unsupported on this client. Mirrored from
+  // the eager-loaded audio-bootstrap module.
+  const [audioSupported, setAudioSupported] = useState(!audioState.unsupported);
 
-  // ── Pre-fetch + pre-decode on mount ────────────────────────────────
-  // Fetches the mp3 in parallel with the EntryGate loader, decodes it
-  // into an AudioBuffer, and parks it in a ref ready for playback. No
-  // sound is produced — that requires a user gesture (next effect).
+  // ── Subscribe to audio-bootstrap state ─────────────────────────────
+  // The bootstrap module (loaded from main.tsx, BEFORE React mounts)
+  // already created the AudioContext, started the mp3 fetch, and
+  // registered the gesture-unlock listener. By the time this effect
+  // runs, one of three things is true:
+  //   - buffer is decoded AND unlocked → start immediately
+  //   - unlocked but buffer still decoding → start when notify() fires
+  //   - not yet unlocked → start when notify() fires after the gesture
   useEffect(() => {
-    let cancelled = false;
-    const Ctx = getAudioContextClass();
-    if (!Ctx) {
+    if (audioState.unsupported) {
       setAudioSupported(false);
       return;
     }
-
-    let ctx: AudioContext;
-    try {
-      ctx = new Ctx();
-    } catch {
-      // Some old Android WebViews throw on construction.
-      setAudioSupported(false);
-      return;
-    }
-    ctxRef.current = ctx;
-
-    fetch(src)
-      .then((r) => r.arrayBuffer())
-      .then((buf) => {
-        if (cancelled) return Promise.reject(new Error("cancelled"));
-        // Older Safari uses the callback form; the promise form is the
-        // modern path and works in iOS 14.5+ and current Telegram WebView.
-        return ctx.decodeAudioData(buf);
-      })
-      .then((decoded) => {
-        if (cancelled) return;
-        bufferRef.current = decoded;
-        // If the user already clicked through the gate before decode
-        // finished, the gesture handler set `unlockedRef` and we can
-        // start the real source NOW without a fresh gesture (the
-        // silent buffer below already unlocked the context for us).
-        if (unlockedRef.current && !startedRef.current) {
-          startSource(decoded);
-        }
-      })
-      .catch(() => {
-        // Network failure or decode failure — the pill simply won't
-        // play; the rest of the site is unaffected.
-      });
-
+    const tryStart = () => {
+      if (startedRef.current) return;
+      if (!audioState.unlocked || !audioState.buffer || !audioState.ctx) return;
+      startSource(audioState.buffer);
+    };
+    audioState.onChange.add(tryStart);
+    // Run once on mount in case bootstrap already finished while the
+    // BgMusic chunk was loading.
+    tryStart();
     return () => {
-      cancelled = true;
+      audioState.onChange.delete(tryStart);
     };
-  }, [src]);
-
-  // ── Start playback on first user gesture ───────────────────────────
-  // CRITICAL on iOS / Telegram WebView: the FIRST audio scheduling has
-  // to happen synchronously inside the gesture's task. If we await the
-  // buffer decode (or even let setTimeout fire first), the context is
-  // no longer "in a gesture" and source.start() is silently rejected —
-  // the user has to tap a SECOND time to actually hear sound.
-  //
-  // The fix is the well-known "iOS unlock trick": play a 1-sample
-  // silent buffer synchronously inside the gesture. That buffer
-  // unlocks the context permanently, so when the real mp3 finishes
-  // decoding 200–500 ms later we can start it without a fresh gesture.
-  useEffect(() => {
-    let done = false;
-    const start = () => {
-      if (done || startedRef.current) return;
-      const ctx = ctxRef.current;
-      if (!ctx) return;
-      done = true;
-
-      // Resume the context (no-op on Chrome, required on iOS).
-      // We don't await — resume() is synchronous-ish on iOS, the
-      // important thing is that we schedule audio in the same task.
-      if (ctx.state === "suspended") {
-        ctx.resume().catch(() => {});
-      }
-
-      // ── iOS unlock trick — runs SYNCHRONOUSLY in the gesture ──
-      // A 1-sample silent buffer started at time 0. iOS marks the
-      // context as user-unlocked after this; any future start() —
-      // including ones from microtasks or setTimeout — works fine.
-      try {
-        const silent = ctx.createBuffer(1, 1, 22050);
-        const silentSrc = ctx.createBufferSource();
-        silentSrc.buffer = silent;
-        silentSrc.connect(ctx.destination);
-        silentSrc.start(0);
-        unlockedRef.current = true;
-      } catch {
-        // If even the silent buffer fails, the real one won't help —
-        // fall through and let the polling loop give up gracefully.
-      }
-
-      // Now start the real track. If the buffer is already decoded,
-      // this fires in the SAME tick as the gesture. If not, we poll
-      // (the unlock above means we don't need to be in a gesture
-      // anymore — Safari just needs the buffer ready).
-      const buffer = bufferRef.current;
-      if (buffer) {
-        startSource(buffer);
-      } else {
-        let waited = 0;
-        const tryStart = () => {
-          const buf = bufferRef.current;
-          if (!buf) {
-            if (waited > 8000) return;
-            waited += 80;
-            window.setTimeout(tryStart, 80);
-            return;
-          }
-          startSource(buf);
-        };
-        tryStart();
-      }
-
-      cleanup();
-    };
-
-    const events = [
-      "pointerdown",
-      "pointerup",
-      "touchend",
-      "touchstart",
-      "mousedown",
-      "click",
-      "keydown",
-    ] as const;
-    const cleanup = () => {
-      for (const e of events) document.removeEventListener(e, start, true);
-    };
-    for (const e of events) {
-      document.addEventListener(e, start, { capture: true, once: true });
-    }
-    return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -222,7 +101,7 @@ export function BgMusic({ src }: { src: string }) {
   // safe to call once after first gesture; subsequent toggles use the
   // gain node, not new sources.
   const startSource = (buffer: AudioBuffer) => {
-    const ctx = ctxRef.current;
+    const ctx = audioState.ctx;
     if (!ctx || startedRef.current) return;
     try {
       const source = ctx.createBufferSource();
@@ -352,7 +231,7 @@ export function BgMusic({ src }: { src: string }) {
   // toggle instant on every platform: changing gain.value is a single
   // synchronous parameter write on the audio thread.
   const toggle = () => {
-    const ctx = ctxRef.current;
+    const ctx = audioState.ctx;
     const gain = gainRef.current;
     const next = !soundOn;
     setSoundOn(next);
@@ -365,8 +244,8 @@ export function BgMusic({ src }: { src: string }) {
       if (gain) gain.gain.value = volume;
       // If for some reason the source never started (e.g. user clicked
       // SOUND OFF before the buffer finished decoding), kick it off now.
-      if (!startedRef.current && bufferRef.current) {
-        startSource(bufferRef.current);
+      if (!startedRef.current && audioState.buffer) {
+        startSource(audioState.buffer);
       }
       runLoop();
     } else {
@@ -412,7 +291,8 @@ export function BgMusic({ src }: { src: string }) {
       sourceRef.current?.disconnect();
       gainRef.current?.disconnect();
       analyserRef.current?.disconnect();
-      ctxRef.current?.close().catch(() => {});
+      // We DON'T close audioState.ctx — it's a shared singleton owned
+      // by audio-bootstrap and lives for the lifetime of the page.
     };
   }, []);
 
