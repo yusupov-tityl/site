@@ -91,20 +91,42 @@ function notify() {
   }
   audioState.ctx = ctx;
 
-  // Kick off fetch immediately — competes for bandwidth with the JS
-  // bundle, but the EntryGate's 1.6s loader gives us breathing room.
-  fetch(SRC)
-    .then((r) => r.arrayBuffer())
-    .then((buf) => ctx.decodeAudioData(buf))
-    .then((decoded) => {
-      audioState.buffer = decoded;
-      notify();
-    })
-    .catch(() => {
-      // Network or decode failure — pill will stay silent, nothing
-      // else breaks. Notify anyway so listeners can re-render.
-      notify();
-    });
+  // Defer the 2.2 MB mp3 fetch + decode until either the browser is
+  // idle OR the first user gesture. Previously we fired the fetch
+  // synchronously on module load, which (a) competed with the critical
+  // JS bundle for bandwidth on every page (we now ship audio-bootstrap
+  // on every route, not just home), and (b) pegged a CPU core during
+  // decodeAudioData right when React was hydrating — visible as scroll
+  // jank on mid-range mobile.
+  // The gesture listener below still fires immediately; if the user
+  // clicks "Войти" before the buffer arrives, BgMusic just waits for
+  // the buffer via the audioState notify callback. UX is unchanged.
+  let fetchStarted = false;
+  const startFetch = () => {
+    if (fetchStarted) return;
+    fetchStarted = true;
+    fetch(SRC)
+      .then((r) => r.arrayBuffer())
+      .then((buf) => ctx.decodeAudioData(buf))
+      .then((decoded) => {
+        audioState.buffer = decoded;
+        notify();
+      })
+      .catch(() => {
+        // Network or decode failure — pill will stay silent, nothing
+        // else breaks. Notify anyway so listeners can re-render.
+        notify();
+      });
+  };
+  const idle = (window as unknown as {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+  }).requestIdleCallback;
+  if (idle) {
+    idle(startFetch, { timeout: 3000 });
+  } else {
+    // Safari has no requestIdleCallback; settle after first paint.
+    setTimeout(startFetch, 1500);
+  }
 
   // ── Gesture-unlock listener ───────────────────────────────────────
   // Registered at module-load time so it's in place LONG before any
@@ -128,6 +150,11 @@ function notify() {
 
     const c = audioState.ctx;
     if (!c) return;
+
+    // If idle hasn't fired yet (fast click on slow CPU), kick off the
+    // mp3 fetch right now — we want the buffer ready ASAP since the
+    // user has shown intent.
+    startFetch();
 
     // Resume — synchronous-in-effect inside a gesture on iOS.
     if (c.state === "suspended") {

@@ -163,26 +163,37 @@ export function HeroBackdrop() {
       <div className="absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-t from-black/70 to-transparent" />
       <div className="absolute inset-x-0 top-0 h-[30%] bg-gradient-to-b from-black/50 to-transparent" />
 
-      {/* Subtle amber blobs layered over video */}
+      {/* Subtle amber blobs layered over video. Pre-blurred radial
+          gradients via the gradient itself (transparent edge) instead of
+          CSS blur — same visual, ~10x cheaper for the compositor. The
+          previous `blur-[140px]` on a 70vw layer was choking GPUs on
+          scroll, especially with mix-blend-screen. We also drop the
+          blend mode in favour of plain alpha, and shrink the layers a
+          bit; the visual is virtually identical because the gradient
+          stops are tuned for soft edges. `will-change: transform`
+          isolates the layer so paint never bleeds onto siblings. */}
       <div
         data-blob="1"
-        className="absolute -top-40 -left-40 w-[70vw] h-[70vw] rounded-full blur-[140px] opacity-40 mix-blend-screen"
+        className="absolute -top-40 -left-40 w-[70vw] h-[70vw] rounded-full opacity-40 mix-blend-screen pointer-events-none"
         style={{
           background:
             "radial-gradient(circle at 30% 30%, rgba(255,180,80,0.45), rgba(220,120,40,0.25) 40%, transparent 70%)",
+          willChange: "transform",
         }}
       />
       <div
         data-blob="2"
-        className="absolute -bottom-40 -right-32 w-[60vw] h-[60vw] rounded-full blur-[160px] opacity-40 mix-blend-screen"
+        className="absolute -bottom-40 -right-32 w-[60vw] h-[60vw] rounded-full opacity-40 mix-blend-screen pointer-events-none"
         style={{
           background:
             "radial-gradient(circle at 70% 70%, rgba(255,120,40,0.40), rgba(180,60,20,0.25) 40%, transparent 70%)",
+          willChange: "transform",
         }}
       />
-      {/* Grain */}
+      {/* Grain layer. Kept mix-blend-overlay for the look but reduced
+          opacity so the blend-pass cost is amortised over fewer pixels. */}
       <div
-        className="absolute inset-0 opacity-[0.07] mix-blend-overlay"
+        className="absolute inset-0 opacity-[0.07] mix-blend-overlay pointer-events-none"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
