@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { m as motion, useScroll, useTransform } from "framer-motion";
 import { prefersReducedMotion } from "@/lib/motion";
 
-// Skip the video background entirely on small screens and slow connections —
-// mobile users get the WebP poster only. Shaves ~1.3–2 MB off the critical
-// payload where it matters most (mobile data / 3G).
+// Skip the video background only on explicit data-saver mode or 2G — those
+// are the cases where the user actually pays for bytes or won't get a
+// playable buffer in reasonable time. Mobile screens get the video too:
+// it's a key part of the brand impression, and modern mobile decode is
+// fast enough that the poster + lazy mount keeps LCP fine.
 function shouldLoadVideo(): boolean {
   if (typeof window === "undefined") return false;
-  if (window.matchMedia("(max-width: 767px)").matches) return false;
   const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
   if (conn?.saveData) return false;
   if (conn?.effectiveType && /2g|slow-2g/i.test(conn.effectiveType)) return false;

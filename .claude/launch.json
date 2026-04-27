@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "itityl-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["-C", "artifacts/itityl", "serve"],
+      "port": 3000,
+      "env": {
+        "PORT": "3000",
+        "BASE_PATH": "/site/",
+        "NODE_ENV": "production"
+      }
+    }
+  ]
+}

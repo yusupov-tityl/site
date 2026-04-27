@@ -83,6 +83,17 @@ function notify() {
   }
 }
 
+/**
+ * Imperative unlock — call this from a guaranteed user-gesture handler
+ * (e.g. EntryGate's button onClick / onTouchEnd) when you can't rely on
+ * the document-level listener firing. Idempotent: safe to call multiple
+ * times. Internal `armedRef` ensures we run the heavy unlock work once.
+ */
+let unlockNow: (() => void) | null = null;
+export function unlockAudio() {
+  if (unlockNow) unlockNow();
+}
+
 // ── Boot sequence ───────────────────────────────────────────────────
 (() => {
   if (typeof window === "undefined") return;
@@ -134,6 +145,7 @@ function notify() {
     if (!armed) return;
     armed = false;
     audioState.unlocked = true;
+    unlockNow = null;
 
     // PRIMARY: start playback. We do three things in sequence to
     // maximise the chance audio actually starts on flaky mobile
@@ -221,4 +233,11 @@ function notify() {
     // events fires we manually remove the others.
     document.addEventListener(ev, unlock);
   }
+
+  // Expose imperative entrypoint for components (EntryGate) that
+  // call preventDefault() in their gesture handlers — which cancels
+  // the synthetic click and prevents our document-level listener from
+  // firing. They call unlockAudio() directly inside their handler so
+  // we still run in user-gesture context.
+  unlockNow = unlock;
 })();

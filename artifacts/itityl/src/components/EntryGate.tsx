@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { m as motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { easeInOutExpo, easeOutExpo } from "@/lib/motion";
+import { unlockAudio } from "@/lib/audio-bootstrap";
 
 type Props = { onEnter: () => void };
 
@@ -55,6 +56,15 @@ export function EntryGate({ onEnter }: Props) {
 
   const handleEnter = (e?: React.SyntheticEvent) => {
     if (leaving) return;
+    // CRITICAL: unlock audio FIRST, synchronously, while we're still inside
+    // the user-gesture task. We can't rely on the document-level click
+    // listener in audio-bootstrap because the preventDefault() below
+    // cancels the synthetic click on mobile after touchend, and several
+    // WebViews (Telegram, in-app Yandex/VK) don't count touchend itself
+    // as a gesture activation for media-element play(). Calling the
+    // imperative unlockAudio() here guarantees we run in the same task
+    // that the touch/click produced — every engine accepts this.
+    unlockAudio();
     // We deliberately do NOT gate on `ready` — once the button is visible
     // the user expects every tap to register. On slow devices the loader
     // animation might still be wrapping up, but the click should fire
