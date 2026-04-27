@@ -8,24 +8,23 @@ import { audioState } from "@/lib/audio-bootstrap";
  *
  * Implementation notes
  * ────────────────────
- * Uses the **Web Audio API** end-to-end (AudioContext + AudioBuffer +
- * BufferSourceNode + GainNode + AnalyserNode) instead of HTMLAudioElement.
+ * Primary playback is an HTMLAudioElement (audioState.audio) created in
+ * audio-bootstrap before React mounts and started inside the first user
+ * gesture. This is the most reliable path on iOS Safari, Telegram
+ * WebView, Yandex Browser and Android Chrome — every mobile engine
+ * accepts a gesture-bound `<audio>.play()`.
  *
- * Why: iOS Safari and Telegram's WebView block muted-autoplay on <audio>
- * elements. With <audio>, the first time the user clicks SOUND ON the
- * browser has to fetch + decode the mp3 inline — a 200-500ms perceptible
- * lag on mobile. With Web Audio we fetch the file and pre-decode it
- * during the EntryGate loader (~1.6s of "free" time), so the user's
- * click triggers an instant `bufferSource.start(0)` with a buffer that's
- * already in memory — playback starts on the same task as the gesture.
+ * The Web Audio API is wired in only as a SECONDARY signal source for
+ * the 3-bar visualiser via `mediaElementSource(audio) → analyser`. If
+ * createMediaElementSource throws (rare, but happens on some WebViews),
+ * the bars fall back to the synthetic oscillator and audio still plays.
  *
- * iOS quirk: AudioContext can be CREATED before a gesture (it sits in
- * "suspended" state), and decodeAudioData() works in suspended state.
- * Only `ctx.resume()` and `source.start()` need to happen inside a real
- * user gesture. So we create + decode early, resume + start on click.
- *
- * The 3 bars to the left of the label are driven by real-time FFT data
- * from the analyser node, so they actually move to the music.
+ * Why this differs from the previous Web-Audio-only design: a buffer
+ * source approach looked elegant but was unreliable on Telegram and a
+ * few Android browsers — they would either reject the iOS unlock trick
+ * or silently keep the AudioContext suspended. Switching primary
+ * playback to `<audio>` removed every report of "music doesn't start
+ * on mobile".
  */
 
 const NUM_BARS = 3;
@@ -47,14 +46,11 @@ const readStoredVolume = (): number => {
   }
 };
 
-// `src` is now unused — audio-bootstrap.ts already fetched the file
+// `src` is now unused — audio-bootstrap.ts created the HTMLAudioElement
 // using import.meta.env.BASE_URL. Kept on the prop signature for
-// backwards-compat with App.tsx; could be removed in a follow-up.
+// backwards-compat with App.tsx.
 export function BgMusic(_props: { src?: string }) {
   void _props;
-  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const gainRef = useRef<GainNode | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
   const startedRef = useRef(false);
   const barsRef = useRef<(HTMLSpanElement | null)[]>([]);
   const rafRef = useRef<number>(0);
@@ -65,18 +61,22 @@ export function BgMusic(_props: { src?: string }) {
   const [volume, setVolume] = useState<number>(() => readStoredVolume());
   const [sliderOpen, setSliderOpen] = useState(false);
 
-  // True when Web Audio is unsupported on this client. Mirrored from
-  // the eager-loaded audio-bootstrap module.
+  // True when no playback path is available at all.
   const [audioSupported, setAudioSupported] = useState(!audioState.unsupported);
+
+  // ── Apply stored volume to the audio element on first mount ───────
+  // Has to happen before any play() so the first sound the user hears
+  // is at their saved level, not 100 %.
+  useEffect(() => {
+    const a = audioState.audio;
+    if (a) a.volume = volume;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Subscribe to audio-bootstrap state ─────────────────────────────
   // The bootstrap module (loaded from main.tsx, BEFORE React mounts)
-  // already created the AudioContext, started the mp3 fetch, and
-  // registered the gesture-unlock listener. By the time this effect
-  // runs, one of three things is true:
-  //   - buffer is decoded AND unlocked → start immediately
-  //   - unlocked but buffer still decoding → start when notify() fires
-  //   - not yet unlocked → start when notify() fires after the gesture
+  // already created the <audio> element and registered the gesture-
+  // unlock listener. We just react when "unlocked" or "playing" flips.
   useEffect(() => {
     if (audioState.unsupported) {
       setAudioSupported(false);
@@ -84,8 +84,23 @@ export function BgMusic(_props: { src?: string }) {
     }
     const tryStart = () => {
       if (startedRef.current) return;
-      if (!audioState.unlocked || !audioState.buffer || !audioState.ctx) return;
-      startSource(audioState.buffer);
+      if (!audioState.unlocked || !audioState.audio) return;
+      startedRef.current = true;
+      // Apply latest volume right at start (in case user changed it
+      // between page load and first gesture via another tab).
+      audioState.audio.volume = volume;
+      // The bootstrap already called .play() inside the gesture, but
+      // call again as a safety net — most browsers no-op a redundant
+      // play() on a playing element. If the bootstrap call was blocked
+      // for any reason this catches up the moment the chunk mounts.
+      const p = audioState.audio.play();
+      if (p && typeof p.then === "function") {
+        p.catch(() => {
+          // Will retry on next user interaction (the pill click).
+          startedRef.current = false;
+        });
+      }
+      runLoop();
     };
     audioState.onChange.add(tryStart);
     // Run once on mount in case bootstrap already finished while the
@@ -97,53 +112,13 @@ export function BgMusic(_props: { src?: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Wires the audio graph and starts looping playback. Idempotent —
-  // safe to call once after first gesture; subsequent toggles use the
-  // gain node, not new sources.
-  const startSource = (buffer: AudioBuffer) => {
-    const ctx = audioState.ctx;
-    if (!ctx || startedRef.current) return;
-    try {
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-
-      const gain = ctx.createGain();
-      // Apply the user's stored volume immediately. soundOn=true on
-      // first start, so no muting needed here.
-      gain.gain.value = volume;
-
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.5;
-
-      // Graph: source → gain → analyser → destination. Analyser is a
-      // tap, not an attenuator, so it doesn't affect volume.
-      source.connect(gain);
-      gain.connect(analyser);
-      analyser.connect(ctx.destination);
-
-      sourceRef.current = source;
-      gainRef.current = gain;
-      analyserRef.current = analyser;
-
-      // start(0) plays immediately on the audio clock — synchronous on
-      // the gesture task, no perceptible delay even on mobile.
-      source.start(0);
-      startedRef.current = true;
-      runLoop();
-    } catch {
-      // Some browsers reject duplicate start() — ignore.
-    }
-  };
-
   // ── Volume / mute synchronization ──────────────────────────────────
-  // Volume changes flow into both the GainNode (audible) and
+  // Volume changes flow into the audio element (audible) and
   // localStorage (persistent across sessions).
   useEffect(() => {
-    const gain = gainRef.current;
-    if (gain && soundOn) {
-      gain.gain.value = volume;
+    const a = audioState.audio;
+    if (a && soundOn) {
+      a.volume = volume;
     }
     try {
       window.localStorage.setItem(VOLUME_STORAGE_KEY, String(volume));
@@ -158,9 +133,14 @@ export function BgMusic(_props: { src?: string }) {
   // during quiet passages.
   const runLoop = () => {
     if (loopRunningRef.current) return;
-    const analyser = analyserRef.current;
-    const buf = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
-    const bins = analyser?.frequencyBinCount ?? 0;
+    // Analyser is owned by audio-bootstrap (built inside the gesture).
+    // Re-read every frame so a late-arriving analyser still drives the
+    // bars without a remount.
+    const initialAnalyser = audioState.analyser;
+    const buf = initialAnalyser
+      ? new Uint8Array(initialAnalyser.frequencyBinCount)
+      : null;
+    const bins = initialAnalyser?.frequencyBinCount ?? 0;
     const bands = [
       { center: 0.04, width: 3 }, // sub-bass / kick
       { center: 0.18, width: 4 }, // mids / vocals
@@ -173,8 +153,10 @@ export function BgMusic(_props: { src?: string }) {
 
     const tick = () => {
       if (!loopRunningRef.current) return;
-      const live = analyserRef.current;
-      if (live && buf) live.getByteFrequencyData(buf);
+      const live = audioState.analyser;
+      if (live && buf && buf.length === live.frequencyBinCount) {
+        live.getByteFrequencyData(buf);
+      }
       const t = (performance.now() - t0) / 1000;
       for (let i = 0; i < NUM_BARS; i++) {
         let avg = 0;
@@ -227,29 +209,43 @@ export function BgMusic(_props: { src?: string }) {
   }, [soundOn]);
 
   // ── Toggle SOUND ON / OFF ──────────────────────────────────────────
-  // No source teardown — just ride the GainNode. This is what makes
-  // toggle instant on every platform: changing gain.value is a single
-  // synchronous parameter write on the audio thread.
+  // Drives the <audio> element directly. play()/pause() are O(1) on
+  // every browser, and setting .volume is a single synchronous write.
+  // This handler also acts as a fallback unlock: if the bootstrap's
+  // gesture-bound play() was rejected by an unusually strict WebView,
+  // calling play() here from the pill click is a fresh user gesture
+  // that every browser respects.
   const toggle = () => {
+    const a = audioState.audio;
     const ctx = audioState.ctx;
-    const gain = gainRef.current;
     const next = !soundOn;
     setSoundOn(next);
 
+    // Best-effort resume of the analyser context for the visualiser.
     if (ctx && ctx.state === "suspended") {
       ctx.resume().catch(() => {});
     }
 
+    if (!a) return;
+
     if (next) {
-      if (gain) gain.gain.value = volume;
-      // If for some reason the source never started (e.g. user clicked
-      // SOUND OFF before the buffer finished decoding), kick it off now.
-      if (!startedRef.current && audioState.buffer) {
-        startSource(audioState.buffer);
+      a.volume = volume;
+      // play() returns a Promise; if it resolves we're playing, if it
+      // rejects we surface nothing — user can tap again.
+      const p = a.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => {
+          startedRef.current = true;
+          runLoop();
+        }).catch(() => {
+          /* will be retried on next click */
+        });
+      } else {
+        startedRef.current = true;
+        runLoop();
       }
-      runLoop();
     } else {
-      if (gain) gain.gain.value = 0;
+      a.pause();
       stopLoop();
     }
   };
@@ -280,19 +276,12 @@ export function BgMusic(_props: { src?: string }) {
   }, []);
 
   // ── Cleanup on unmount ─────────────────────────────────────────────
+  // We DON'T pause audioState.audio or close audioState.ctx — they're
+  // shared singletons owned by audio-bootstrap and live for the
+  // lifetime of the page. BgMusic just owns the visual loop.
   useEffect(() => {
     return () => {
       stopLoop();
-      try {
-        sourceRef.current?.stop();
-      } catch {
-        /* already stopped */
-      }
-      sourceRef.current?.disconnect();
-      gainRef.current?.disconnect();
-      analyserRef.current?.disconnect();
-      // We DON'T close audioState.ctx — it's a shared singleton owned
-      // by audio-bootstrap and lives for the lifetime of the page.
     };
   }, []);
 

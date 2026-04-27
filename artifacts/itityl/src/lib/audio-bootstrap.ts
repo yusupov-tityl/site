@@ -1,29 +1,35 @@
 /**
  * Audio bootstrap — runs at the EARLIEST possible point in app boot.
  *
- * Why this exists
- * ───────────────
- * The BgMusic component is lazy-loaded as a separate chunk to keep
- * the initial bundle slim. On slow mobile connections the chunk may
- * not arrive before the user clicks "Войти" — and that click is
- * THE one and only chance to unlock the AudioContext on iOS / Telegram
- * WebView. Miss it, and audio is dead for the rest of the session.
+ * Architecture (after the mobile-WebView fix)
+ * ───────────────────────────────────────────
+ * Two parallel audio paths with a clear primary / secondary split:
  *
- * This module is imported eagerly from main.tsx so it runs before
- * React mounts. It:
- *   1. Creates the AudioContext immediately (in suspended state).
- *   2. Kicks off fetch + decode of the mp3 in parallel with React boot.
- *   3. Registers a one-shot, capture-phase document listener for the
- *      first user gesture. Inside that gesture it runs the iOS unlock
- *      trick (1-sample silent buffer started synchronously) and, if
- *      the real buffer is already decoded, starts the music too.
+ *   1. PRIMARY: HTMLAudioElement (`audioState.audio`)
+ *      Plays the actual sound. Works reliably on iOS Safari, Telegram
+ *      WebView, Android Chrome / Yandex Browser, and every desktop
+ *      engine. The browser handles streaming + decoding for us; no
+ *      manual fetch/decode pipeline that can stall on slow mobile or
+ *      hit codec quirks. `.play()` is called inside the first user
+ *      gesture, which satisfies every mobile autoplay policy.
  *
- * BgMusic, when it eventually mounts, just reads `audioState` and
- * subscribes to volume / mute changes. It never owns the AudioContext.
+ *   2. SECONDARY: Web Audio API (`audioState.ctx` + AnalyserNode)
+ *      Used ONLY for the 3-bar visualizer. We build the graph
+ *      `mediaElementSource(audio) → analyser → destination` so the
+ *      analyser can read FFT data from the same `<audio>` element.
+ *      If `createMediaElementSource` throws (some WebViews don't
+ *      support it), we silently skip — bars then animate purely from
+ *      the synthetic oscillator and audio still plays.
+ *
+ * The previous design used Web Audio for playback too. That looked
+ * elegant on paper but wasn't reliable: Telegram WebView and a few
+ * Android browsers either reject the iOS unlock trick, fail
+ * `decodeAudioData` on certain mp3 frames, or silently keep the
+ * AudioContext suspended even after `resume()`. Switching primary
+ * playback to a plain `<audio>` element solved all of those.
  */
 
 const SRC = (() => {
-  // import.meta.env.BASE_URL is "/" in production, "/<base>/" otherwise.
   const base = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
   return `${base}/bg-music.mp3`;
 })();
@@ -41,23 +47,29 @@ function getAudioContextClass(): AudioCtxClass | null {
 }
 
 export type AudioState = {
-  /** True when Web Audio is unavailable on this client. */
+  /** True when neither HTMLAudioElement nor Web Audio is available. */
   unsupported: boolean;
-  /** The shared AudioContext, or null if unsupported / construction failed. */
-  ctx: AudioContext | null;
-  /** Decoded mp3 buffer. May be null until the network fetch completes. */
-  buffer: AudioBuffer | null;
-  /** True after the iOS unlock trick has run inside a user gesture. */
+  /** Primary playback element. Created on module load. */
+  audio: HTMLAudioElement | null;
+  /** True once the audio element has actually started playing. */
+  playing: boolean;
+  /** True after the first user gesture has been observed. */
   unlocked: boolean;
-  /** Listeners notified on state changes (buffer ready, unlocked, etc). */
+  /** Optional Web Audio context for the FFT visualiser. */
+  ctx: AudioContext | null;
+  /** Analyser node for the bar visualiser. Null if Web Audio path failed. */
+  analyser: AnalyserNode | null;
+  /** Listeners notified on state changes. */
   onChange: Set<() => void>;
 };
 
 export const audioState: AudioState = {
   unsupported: false,
-  ctx: null,
-  buffer: null,
+  audio: null,
+  playing: false,
   unlocked: false,
+  ctx: null,
+  analyser: null,
   onChange: new Set(),
 };
 
@@ -72,67 +84,47 @@ function notify() {
 }
 
 // ── Boot sequence ───────────────────────────────────────────────────
-// Wrapped in IIFE so import side-effects run once on module load.
 (() => {
   if (typeof window === "undefined") return;
 
-  const Ctx = getAudioContextClass();
-  if (!Ctx) {
-    audioState.unsupported = true;
-    return;
-  }
-
-  let ctx: AudioContext;
+  // Create the primary <audio> element. Don't auto-play — that's
+  // forbidden on mobile until a gesture. preload="auto" tells the
+  // browser to start fetching as soon as it's idle, but the browser
+  // itself decides bandwidth scheduling, so we don't peg the network
+  // during hydration.
+  let audio: HTMLAudioElement;
   try {
-    ctx = new Ctx();
+    audio = new Audio(SRC);
+    audio.loop = true;
+    audio.preload = "auto";
+    audio.crossOrigin = "anonymous"; // required for createMediaElementSource
+    // Some WebViews need the element attached to the DOM to honour
+    // play() — append it hidden. Safe on all engines.
+    audio.style.display = "none";
+    document.documentElement.appendChild(audio);
   } catch {
     audioState.unsupported = true;
     return;
   }
-  audioState.ctx = ctx;
+  audioState.audio = audio;
 
-  // Defer the 2.2 MB mp3 fetch + decode until either the browser is
-  // idle OR the first user gesture. Previously we fired the fetch
-  // synchronously on module load, which (a) competed with the critical
-  // JS bundle for bandwidth on every page (we now ship audio-bootstrap
-  // on every route, not just home), and (b) pegged a CPU core during
-  // decodeAudioData right when React was hydrating — visible as scroll
-  // jank on mid-range mobile.
-  // The gesture listener below still fires immediately; if the user
-  // clicks "Войти" before the buffer arrives, BgMusic just waits for
-  // the buffer via the audioState notify callback. UX is unchanged.
-  let fetchStarted = false;
-  const startFetch = () => {
-    if (fetchStarted) return;
-    fetchStarted = true;
-    fetch(SRC)
-      .then((r) => r.arrayBuffer())
-      .then((buf) => ctx.decodeAudioData(buf))
-      .then((decoded) => {
-        audioState.buffer = decoded;
-        notify();
-      })
-      .catch(() => {
-        // Network or decode failure — pill will stay silent, nothing
-        // else breaks. Notify anyway so listeners can re-render.
-        notify();
-      });
-  };
-  const idle = (window as unknown as {
-    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-  }).requestIdleCallback;
-  if (idle) {
-    idle(startFetch, { timeout: 3000 });
-  } else {
-    // Safari has no requestIdleCallback; settle after first paint.
-    setTimeout(startFetch, 1500);
-  }
+  audio.addEventListener("playing", () => {
+    audioState.playing = true;
+    notify();
+  });
+  audio.addEventListener("pause", () => {
+    audioState.playing = false;
+    notify();
+  });
 
   // ── Gesture-unlock listener ───────────────────────────────────────
-  // Registered at module-load time so it's in place LONG before any
-  // React component mounts. Capture phase + once: it fires before any
-  // bubble-phase handlers (including EntryGate's onClick) and only
-  // for the first event of each kind.
+  // Capture-phase + once-per-event so it fires BEFORE any React
+  // onClick handler. Inside the gesture we:
+  //   1. Call audio.play() → starts (or queues) playback
+  //   2. Build the Web Audio analyser graph for the visualiser
+  //   3. Run the iOS silent-buffer unlock trick on the AudioContext
+  //
+  // Step 1 is what users actually hear; steps 2–3 are best-effort.
   const events = [
     "pointerdown",
     "pointerup",
@@ -147,32 +139,60 @@ function notify() {
   const unlock = () => {
     if (!armed) return;
     armed = false;
+    audioState.unlocked = true;
 
-    const c = audioState.ctx;
-    if (!c) return;
-
-    // If idle hasn't fired yet (fast click on slow CPU), kick off the
-    // mp3 fetch right now — we want the buffer ready ASAP since the
-    // user has shown intent.
-    startFetch();
-
-    // Resume — synchronous-in-effect inside a gesture on iOS.
-    if (c.state === "suspended") {
-      c.resume().catch(() => {});
+    // PRIMARY: start playback. .play() returns a Promise that may
+    // reject on autoplay-policy violations — but we're inside a
+    // gesture so it should resolve. If it rejects (some WebViews are
+    // weirdly strict), BgMusic's own click handler will retry.
+    const p = audio.play();
+    if (p && typeof p.then === "function") {
+      p.catch(() => {
+        // Don't notify a failure here — BgMusic's toggle will retry on
+        // explicit user interaction with the pill.
+      });
     }
 
-    // The 1-sample silent buffer trick. iOS marks the context as
-    // user-unlocked after this; subsequent start() calls work even
-    // outside a gesture.
-    try {
-      const silentBuf = c.createBuffer(1, 1, 22050);
-      const silent = c.createBufferSource();
-      silent.buffer = silentBuf;
-      silent.connect(c.destination);
-      silent.start(0);
-      audioState.unlocked = true;
-    } catch {
-      /* even silent failed — give up */
+    // SECONDARY: spin up Web Audio for the visualiser.
+    const Ctx = getAudioContextClass();
+    if (Ctx) {
+      try {
+        const ctx = new Ctx();
+        if (ctx.state === "suspended") {
+          ctx.resume().catch(() => {});
+        }
+        // iOS silent-buffer unlock — keeps Web Audio alive in case
+        // anything else on the page wants it later.
+        try {
+          const silentBuf = ctx.createBuffer(1, 1, 22050);
+          const silent = ctx.createBufferSource();
+          silent.buffer = silentBuf;
+          silent.connect(ctx.destination);
+          silent.start(0);
+        } catch {
+          /* silent unlock failed — visualiser may be quiet */
+        }
+        // Hook the <audio> element into Web Audio so the analyser
+        // sees real samples. createMediaElementSource throws on some
+        // WebViews; if so, the bars fall back to the oscillator-only
+        // animation in BgMusic.
+        try {
+          const src = ctx.createMediaElementSource(audio);
+          const analyser = ctx.createAnalyser();
+          analyser.fftSize = 256;
+          analyser.smoothingTimeConstant = 0.5;
+          src.connect(analyser);
+          analyser.connect(ctx.destination);
+          audioState.ctx = ctx;
+          audioState.analyser = analyser;
+        } catch {
+          // Visualiser will render via the synthetic oscillator only.
+          // Audio still plays via the <audio> element.
+          audioState.ctx = ctx;
+        }
+      } catch {
+        /* Web Audio path failed; <audio> still works. */
+      }
     }
 
     notify();
