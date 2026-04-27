@@ -118,22 +118,16 @@ function notify() {
   });
 
   // ── Gesture-unlock listener ───────────────────────────────────────
-  // Capture-phase + once-per-event so it fires BEFORE any React
-  // onClick handler. Inside the gesture we:
-  //   1. Call audio.play() → starts (or queues) playback
-  //   2. Build the Web Audio analyser graph for the visualiser
-  //   3. Run the iOS silent-buffer unlock trick on the AudioContext
-  //
-  // Step 1 is what users actually hear; steps 2–3 are best-effort.
-  const events = [
-    "pointerdown",
-    "pointerup",
-    "touchstart",
-    "touchend",
-    "mousedown",
-    "click",
-    "keydown",
-  ] as const;
+  // We listen ONLY for `click` and `keydown`, in BUBBLE phase. The
+  // earlier capture-phase pointerdown/touchstart listener technically
+  // fired before EntryGate's onClick, but several mobile WebViews
+  // (Telegram, in-app Yandex/VK browsers) don't count capture-phase
+  // pointerdown as a "user activation" for media-element play() —
+  // which is why music only started on the SECOND click (the pill)
+  // and not on the FIRST (the "Войти" button). The reliable signal
+  // across every engine is a bubble-phase `click` on a real
+  // interactive element, exactly what EntryGate's button dispatches.
+  const events = ["click", "keydown"] as const;
 
   let armed = true;
   const unlock = () => {
@@ -141,17 +135,35 @@ function notify() {
     armed = false;
     audioState.unlocked = true;
 
-    // PRIMARY: start playback. .play() returns a Promise that may
-    // reject on autoplay-policy violations — but we're inside a
-    // gesture so it should resolve. If it rejects (some WebViews are
-    // weirdly strict), BgMusic's own click handler will retry.
-    const p = audio.play();
-    if (p && typeof p.then === "function") {
-      p.catch(() => {
-        // Don't notify a failure here — BgMusic's toggle will retry on
-        // explicit user interaction with the pill.
-      });
+    // PRIMARY: start playback. We do three things in sequence to
+    // maximise the chance audio actually starts on flaky mobile
+    // engines:
+    //   1. audio.load() — force the element back to "loading" state
+    //      and re-issue the network request if it stalled. Cheap on
+    //      a fully-buffered element.
+    //   2. audio.play() — gesture-bound start. On iOS this is the
+    //      moment the autoplay token is granted.
+    //   3. canplay retry — if play() rejected because the file wasn't
+    //      buffered enough yet, the browser fires `canplay` once it
+    //      has metadata + first frame. We retry then; permission from
+    //      step 2 carries over so no new gesture is needed.
+    try {
+      audio.load();
+    } catch {
+      /* some engines throw if load() is called before src settles */
     }
+    const tryPlay = () => {
+      const p = audio.play();
+      if (p && typeof p.then === "function") {
+        p.catch(() => {
+          // Permission denied OR not buffered yet. Either canplay
+          // below retries, or BgMusic's pill click retries — both
+          // cover the same case.
+        });
+      }
+    };
+    tryPlay();
+    audio.addEventListener("canplay", tryPlay, { once: true });
 
     // SECONDARY: spin up Web Audio for the visualiser.
     const Ctx = getAudioContextClass();
@@ -200,10 +212,13 @@ function notify() {
   };
   const cleanup = () => {
     for (const ev of events) {
-      document.removeEventListener(ev, unlock, true);
+      document.removeEventListener(ev, unlock);
     }
   };
   for (const ev of events) {
-    document.addEventListener(ev, unlock, { capture: true, once: true });
+    // Bubble phase. We can't use `once: true` here because we want
+    // armed/cleanup to be the source of truth — once any one of the
+    // events fires we manually remove the others.
+    document.addEventListener(ev, unlock);
   }
 })();
