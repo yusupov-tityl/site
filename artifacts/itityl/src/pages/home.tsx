@@ -452,7 +452,12 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* ── MARQUEE LOGOS ── */}
+      {/* ── MARQUEE LOGOS ──
+          Temporarily hidden at the user's request — to restore, remove the
+          `false &&` guard below. Keeping the JSX and `logos` import in
+          place so the block is a one-line toggle when the user is ready
+          to put it back. */}
+      {false && (
       <section className="border-y border-white/15 py-8 bg-black flex flex-col gap-6 overflow-hidden">
         <motion.div
           initial={{ opacity: 0 }}
@@ -466,6 +471,7 @@ export default function Home() {
         </motion.div>
         <MarqueeRow items={logos} speed={18} />
       </section>
+      )}
 
       {/* ── ABOUT ── */}
       <section id="about" className="py-32 px-6 md:px-10 border-b border-white/15 relative overflow-hidden">
