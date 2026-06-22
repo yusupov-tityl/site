@@ -22,11 +22,20 @@ if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
     "TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID not set; leads will only be stored in DB and emailed",
   );
 }
-if (process.env.SMTP_HOST && process.env.LEAD_EMAIL_TO) {
-  logger.info({ to: process.env.LEAD_EMAIL_TO }, "Email lead notifications enabled");
+if (process.env.RESEND_API_KEY && process.env.LEAD_EMAIL_TO) {
+  logger.info(
+    { to: process.env.LEAD_EMAIL_TO },
+    "Email lead notifications enabled (Resend)",
+  );
 } else {
   logger.warn(
-    "SMTP_* / LEAD_EMAIL_TO not set; email fallback channel is disabled",
+    "RESEND_API_KEY / LEAD_EMAIL_TO not set; email channel is disabled",
+  );
+}
+if (process.env.TELEGRAM_RELAY_URL) {
+  logger.info(
+    { url: process.env.TELEGRAM_RELAY_URL },
+    "Telegram via relay (proxy)",
   );
 }
 

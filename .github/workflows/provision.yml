@@ -30,7 +30,9 @@ jobs:
           # workflow filesystem or logs (GitHub auto-masks secret values).
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          TELEGRAM_RELAY_URL: ${{ secrets.TELEGRAM_RELAY_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LEAD_EMAIL_FROM: ${{ secrets.LEAD_EMAIL_FROM }}
           RESET_DB_PASSWORD: ${{ inputs.reset_db_password }}
         run: |
           # The setup itself needs sudo. We push the secrets across over
@@ -38,36 +40,42 @@ jobs:
           # CI runner (the heredoc body is generated inline, then piped).
           ssh -o SendEnv=TELEGRAM_BOT_TOKEN \
               -o SendEnv=TELEGRAM_CHAT_ID \
-              -o SendEnv=SMTP_PASS \
+              -o SendEnv=TELEGRAM_RELAY_URL \
+              -o SendEnv=RESEND_API_KEY \
+              -o SendEnv=LEAD_EMAIL_FROM \
               -o SendEnv=RESET_DB_PASSWORD \
               ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
               "TELEGRAM_BOT_TOKEN='${TELEGRAM_BOT_TOKEN}' \
                TELEGRAM_CHAT_ID='${TELEGRAM_CHAT_ID}' \
-               SMTP_PASS='${SMTP_PASS}' \
+               TELEGRAM_RELAY_URL='${TELEGRAM_RELAY_URL}' \
+               RESEND_API_KEY='${RESEND_API_KEY}' \
+               LEAD_EMAIL_FROM='${LEAD_EMAIL_FROM}' \
                RESET_DB_PASSWORD='${RESET_DB_PASSWORD}' \
                bash -s" <<'REMOTE'
             set -euo pipefail
             cd ~/ittool
             git fetch origin
             git reset --hard origin/main
-            pnpm install --frozen-lockfile
+            pnpm install --no-frozen-lockfile
 
             # 1. Bootstrap Postgres + systemd + nginx /api/ + env file scaffold.
             #    First run creates everything; reruns are no-ops on stable bits.
             sudo APP_DIR="$HOME/ittool" APP_USER="$USER" \
               bash scripts/setup-vps.sh
 
-            # 2. Patch the three lead-channel secrets into /etc/itityl-api.env.
-            #    setup-vps.sh leaves these blank on first creation. We do this
-            #    via sed -i with a temp file owned by root so the values never
-            #    appear in shell history.
+            # 2. Patch lead-channel secrets into /etc/itityl-api.env.
+            #    setup-vps.sh leaves these blank on first creation. New
+            #    keys (TELEGRAM_RELAY_URL, RESEND_API_KEY, LEAD_EMAIL_FROM)
+            #    are appended if missing.
             sudo bash -c "
               set -e
               ENV=/etc/itityl-api.env
               for kv in \
                 'TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}' \
                 'TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}' \
-                'SMTP_PASS=${SMTP_PASS}'; do
+                'TELEGRAM_RELAY_URL=${TELEGRAM_RELAY_URL}' \
+                'RESEND_API_KEY=${RESEND_API_KEY}' \
+                'LEAD_EMAIL_FROM=${LEAD_EMAIL_FROM}'; do
                 key=\"\${kv%%=*}\"
                 if grep -qE \"^\${key}=\" \"\$ENV\"; then
                   # Use # as sed delimiter so / and : in values don't break us.

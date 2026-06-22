@@ -16,7 +16,6 @@
  * this module and reads from the DB.
  */
 import { Agent, fetch as undiciFetch } from "undici";
-import nodemailer, { type Transporter } from "nodemailer";
 import { logger } from "./logger";
 
 // Force IPv4 for outbound calls. On Russian VPS hosts:
@@ -247,70 +246,52 @@ async function sendTelegram(req: ContactNotification): Promise<boolean> {
   }
 }
 
-// ── Email channel (nodemailer) ────────────────────────────────────────
-
-let cachedTransporter: Transporter | null = null;
-
-function getTransporter(): Transporter | null {
-  if (cachedTransporter) return cachedTransporter;
-  const host = process.env.SMTP_HOST;
-  const portStr = process.env.SMTP_PORT;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!host || !portStr || !user || !pass) return null;
-  const port = Number.parseInt(portStr, 10);
-  if (!Number.isFinite(port)) return null;
-  // SMTP_SECURE=true forces TLS on connect (port 465); false uses
-  // STARTTLS upgrade (port 587). Default by port number when unset.
-  const explicitSecure = process.env.SMTP_SECURE;
-  const secure =
-    explicitSecure === "true"
-      ? true
-      : explicitSecure === "false"
-        ? false
-        : port === 465;
-  cachedTransporter = nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: { user, pass },
-    // Force IPv4 lookup; Russian VPS often lacks IPv6 routing.
-    // Tight timeouts so a dead route fails fast (default is 2 minutes,
-    // which produces a 2-min hang per lead before logging).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    family: 4,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
-  return cachedTransporter;
-}
+// ── Email channel (Resend HTTP API) ───────────────────────────────────
+//
+// SMTP (any port) is blocked outbound by the VPS hoster — a typical
+// antispam measure. We send via Resend's HTTPS API instead, which is
+// reachable from anywhere. The free tier covers 100 emails/day which
+// is well above our lead volume.
 
 async function sendEmail(req: ContactNotification): Promise<boolean> {
-  const transporter = getTransporter();
+  const apiKey = process.env.RESEND_API_KEY;
   const to = process.env.LEAD_EMAIL_TO;
-  if (!transporter || !to) {
+  if (!apiKey || !to) {
     logger.info(
       { contactId: req.id },
-      "Email skipped: SMTP_* / LEAD_EMAIL_TO not configured",
+      "Email skipped: RESEND_API_KEY / LEAD_EMAIL_TO not configured",
     );
     return false;
   }
-  const from =
-    process.env.LEAD_EMAIL_FROM ?? process.env.SMTP_USER ?? "noreply@itityl.ru";
+  const from = process.env.LEAD_EMAIL_FROM ?? "onboarding@resend.dev";
   const { text, html } = formatEmailBody(req);
   const replyTo = req.email ?? undefined;
   const subject = `Заявка #${req.id} — ${req.company} (${REQUEST_TYPE_LABEL[req.requestType]})`;
   try {
-    await transporter.sendMail({
-      from,
-      to,
-      replyTo,
-      subject,
-      text,
-      html,
+    const response = await undiciFetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        reply_to: replyTo,
+        subject,
+        text,
+        html,
+      }),
+      dispatcher: IPV4_AGENT,
     });
+    if (!response.ok) {
+      const body = await response.text();
+      logger.error(
+        { contactId: req.id, status: response.status, body },
+        "Email notification failed (Resend non-2xx)",
+      );
+      return false;
+    }
     logger.info({ contactId: req.id }, "Email notification sent");
     return true;
   } catch (err) {
