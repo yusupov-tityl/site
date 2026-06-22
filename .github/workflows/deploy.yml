@@ -24,7 +24,32 @@ jobs:
             git fetch origin
             git reset --hard origin/main
             pnpm install --frozen-lockfile
+
+            # ── Frontend ──────────────────────────────────────────────
             cd artifacts/itityl
             PORT=5173 BASE_PATH=/ NODE_ENV=production pnpm run build
+            cd ../..
+
+            # ── Backend (api-server) ──────────────────────────────────
+            # Build is idempotent; restart picks up the new dist + any
+            # schema changes that flow through @workspace/db. The systemd
+            # unit reads /etc/itityl-api.env so we don't touch secrets here.
+            pnpm -C artifacts/api-server run build
+
+            # Apply DB schema changes (drizzle-kit push). DATABASE_URL is
+            # exported from the unit's env file so we don't put it in CI.
+            if [ -f /etc/itityl-api.env ]; then
+              # shellcheck disable=SC2046
+              export $(grep -E '^DATABASE_URL=' /etc/itityl-api.env | xargs)
+              pnpm -C lib/db run push-force || echo "drizzle push failed — investigate before lead form submits"
+              unset DATABASE_URL
+            fi
+
+            # Restart only if the unit exists (first deploy may pre-date
+            # setup-vps.sh). Both `restart` and `reload nginx` are safe
+            # no-ops when nothing is mounted yet.
+            if systemctl list-unit-files | grep -q itityl-api.service; then
+              sudo systemctl restart itityl-api.service
+            fi
             sudo systemctl reload nginx
           EOF
