@@ -162,13 +162,30 @@ if [[ ! -f "${NGINX_VHOST}" ]]; then
 else
   echo "==> Patching ${NGINX_VHOST} with /api/ proxy block"
   # Self-healing patcher:
-  #   1. Take a timestamped backup of the current vhost.
-  #   2. Strip any prior block between BEGIN/END markers (handles re-runs
-  #      AND recovers from a broken previous patch attempt).
+  #   0. If the current vhost FAILS nginx -t, find the oldest .bak.*
+  #      sibling (the pristine pre-patch original) and restore from it.
+  #      This recovers from prior broken-patch runs.
+  #   1. Take a timestamped backup of the (now-known-good) vhost.
+  #   2. Strip any prior block between BEGIN/END markers (handles re-runs).
   #   3. Build the clean proxy block in a tempfile.
   #   4. Insert the tempfile contents before the last `}` of the vhost
   #      via awk — no shell quoting, no escape hazards.
-  #   5. nginx -t; if it fails, restore the backup and exit non-zero.
+  #   5. nginx -t; if it fails, restore the just-taken backup and exit.
+  if ! nginx -t 2>/dev/null; then
+    OLDEST_BAK="$(ls -1t "${NGINX_VHOST}".bak.* 2>/dev/null | tail -1 || true)"
+    if [[ -n "${OLDEST_BAK}" ]]; then
+      echo "    current vhost is broken — restoring from oldest backup ${OLDEST_BAK}"
+      cp -a "${OLDEST_BAK}" "${NGINX_VHOST}"
+      if ! nginx -t 2>/dev/null; then
+        echo "ERROR: even oldest backup ${OLDEST_BAK} fails nginx -t — manual intervention required" >&2
+        exit 1
+      fi
+    else
+      echo "ERROR: vhost broken and no .bak.* available — manual fix required" >&2
+      exit 1
+    fi
+  fi
+
   BACKUP="${NGINX_VHOST}.bak.$(date +%s)"
   cp -a "${NGINX_VHOST}" "${BACKUP}"
   echo "    backup: ${BACKUP}"
