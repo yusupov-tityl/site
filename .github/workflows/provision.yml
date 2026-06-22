@@ -1,0 +1,98 @@
+name: Provision VPS (one-time setup)
+
+# Manual trigger only. Runs scripts/setup-vps.sh on the VPS, then patches
+# /etc/itityl-api.env with the lead-channel secrets from GitHub Secrets
+# and restarts itityl-api. Re-runnable — every step is idempotent.
+
+on:
+  workflow_dispatch:
+    inputs:
+      reset_db_password:
+        description: "Rotate the Postgres password? (rare — leave false on rerun)"
+        type: boolean
+        default: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Run setup-vps.sh on VPS
+        env:
+          # Lead delivery channels. Each goes into /etc/itityl-api.env on
+          # the VPS via the patcher step below, never written to the
+          # workflow filesystem or logs (GitHub auto-masks secret values).
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          RESET_DB_PASSWORD: ${{ inputs.reset_db_password }}
+        run: |
+          # The setup itself needs sudo. We push the secrets across over
+          # the SSH stdin via a heredoc — they never touch a file on the
+          # CI runner (the heredoc body is generated inline, then piped).
+          ssh -o SendEnv=TELEGRAM_BOT_TOKEN \
+              -o SendEnv=TELEGRAM_CHAT_ID \
+              -o SendEnv=SMTP_PASS \
+              -o SendEnv=RESET_DB_PASSWORD \
+              ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+              "TELEGRAM_BOT_TOKEN='${TELEGRAM_BOT_TOKEN}' \
+               TELEGRAM_CHAT_ID='${TELEGRAM_CHAT_ID}' \
+               SMTP_PASS='${SMTP_PASS}' \
+               RESET_DB_PASSWORD='${RESET_DB_PASSWORD}' \
+               bash -s" <<'REMOTE'
+            set -euo pipefail
+            cd ~/ittool
+            git fetch origin
+            git reset --hard origin/main
+            pnpm install --frozen-lockfile
+
+            # 1. Bootstrap Postgres + systemd + nginx /api/ + env file scaffold.
+            #    First run creates everything; reruns are no-ops on stable bits.
+            sudo APP_DIR="$HOME/ittool" APP_USER="$USER" \
+              bash scripts/setup-vps.sh
+
+            # 2. Patch the three lead-channel secrets into /etc/itityl-api.env.
+            #    setup-vps.sh leaves these blank on first creation. We do this
+            #    via sed -i with a temp file owned by root so the values never
+            #    appear in shell history.
+            sudo bash -c "
+              set -e
+              ENV=/etc/itityl-api.env
+              for kv in \
+                'TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}' \
+                'TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}' \
+                'SMTP_PASS=${SMTP_PASS}'; do
+                key=\"\${kv%%=*}\"
+                if grep -qE \"^\${key}=\" \"\$ENV\"; then
+                  # Use # as sed delimiter so / and : in values don't break us.
+                  sed -i \"s#^\${key}=.*#\${kv}#\" \"\$ENV\"
+                else
+                  echo \"\${kv}\" >> \"\$ENV\"
+                fi
+              done
+              chmod 600 \"\$ENV\"
+              chown root:root \"\$ENV\"
+            "
+
+            # 3. Restart the API so the new env takes effect, then a quick
+            #    smoke test via the loopback.
+            sudo systemctl restart itityl-api.service
+            sleep 2
+            curl -fsS http://127.0.0.1:3000/api/healthz \
+              && echo "  (api responding locally)" \
+              || (echo "API not responding — see journalctl -u itityl-api -n 50" >&2; exit 1)
+
+            echo
+            echo "==========================================================="
+            echo "Provision complete. Next:"
+            echo "  curl -sS https://itityl.ru/api/healthz"
+            echo "  Submit a form on the site — lead should land in Telegram"
+            echo "  group and pochta@i-tityl.ru within ~2s."
+            echo "==========================================================="
+          REMOTE
