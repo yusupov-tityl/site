@@ -15,8 +15,16 @@
  * Anything more complex (retry queues, webhooks, CRM push) lives outside
  * this module and reads from the DB.
  */
+import { Agent } from "undici";
 import nodemailer, { type Transporter } from "nodemailer";
 import { logger } from "./logger";
+
+// Force IPv4 for outbound calls. On Russian VPS hosts:
+//   – IPv6 routing to Yandex SMTP often isn't configured (ENETUNREACH).
+//   – Even where IPv6 works, happy-eyeballs racing can pick a dead path.
+// IPv4 endpoints are reachable; IPv6 sometimes isn't. We force the
+// address family on both channels.
+const IPV4_AGENT = new Agent({ connect: { family: 4 } });
 
 export type RequestType = "diagnostics" | "pilot" | "consultation" | "other";
 
@@ -203,7 +211,13 @@ async function sendTelegram(req: ContactNotification): Promise<boolean> {
           parse_mode: "HTML",
           disable_web_page_preview: true,
         }),
-      },
+        // Force IPv4. See IPV4_AGENT comment. Cast to any because the
+        // built-in `fetch` typing doesn't surface the undici-specific
+        // `dispatcher` option, but Node 22 reads it at runtime.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        dispatcher: IPV4_AGENT,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
     );
     if (!response.ok) {
       const body = await response.text();
@@ -248,7 +262,13 @@ function getTransporter(): Transporter | null {
     port,
     secure,
     auth: { user, pass },
-  });
+    // Force IPv4 lookup; Russian VPS often lacks IPv6 routing.
+    // `family` is supported by the underlying smtp-connection but isn't
+    // surfaced in the basic TransportOptions type — cast through.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    family: 4,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
   return cachedTransporter;
 }
 
