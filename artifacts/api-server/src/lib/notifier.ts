@@ -15,7 +15,7 @@
  * Anything more complex (retry queues, webhooks, CRM push) lives outside
  * this module and reads from the DB.
  */
-import { Agent } from "undici";
+import { Agent, fetch as undiciFetch } from "undici";
 import nodemailer, { type Transporter } from "nodemailer";
 import { logger } from "./logger";
 
@@ -24,7 +24,16 @@ import { logger } from "./logger";
 //   – Even where IPv6 works, happy-eyeballs racing can pick a dead path.
 // IPv4 endpoints are reachable; IPv6 sometimes isn't. We force the
 // address family on both channels.
-const IPV4_AGENT = new Agent({ connect: { family: 4 } });
+//
+// IMPORTANT: we MUST use `fetch` from the `undici` package together
+// with `Agent` from the same package. Node 22's built-in `fetch` uses
+// an INTERNAL bundled undici and rejects userland Agents with
+// "invalid onRequestStart method". Always pair the two.
+const IPV4_AGENT = new Agent({
+  connect: { family: 4, timeout: 8000 },
+  bodyTimeout: 8000,
+  headersTimeout: 8000,
+});
 
 export type RequestType = "diagnostics" | "pilot" | "consultation" | "other";
 
@@ -200,7 +209,9 @@ async function sendTelegram(req: ContactNotification): Promise<boolean> {
     return false;
   }
   try {
-    const response = await fetch(
+    // Use undici.fetch (NOT global fetch) so the IPV4_AGENT dispatcher
+    // is honored — see IPV4_AGENT comment.
+    const response = await undiciFetch(
       `https://api.telegram.org/bot${token}/sendMessage`,
       {
         method: "POST",
@@ -211,13 +222,8 @@ async function sendTelegram(req: ContactNotification): Promise<boolean> {
           parse_mode: "HTML",
           disable_web_page_preview: true,
         }),
-        // Force IPv4. See IPV4_AGENT comment. Cast to any because the
-        // built-in `fetch` typing doesn't surface the undici-specific
-        // `dispatcher` option, but Node 22 reads it at runtime.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         dispatcher: IPV4_AGENT,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
+      },
     );
     if (!response.ok) {
       const body = await response.text();
@@ -263,10 +269,13 @@ function getTransporter(): Transporter | null {
     secure,
     auth: { user, pass },
     // Force IPv4 lookup; Russian VPS often lacks IPv6 routing.
-    // `family` is supported by the underlying smtp-connection but isn't
-    // surfaced in the basic TransportOptions type — cast through.
+    // Tight timeouts so a dead route fails fast (default is 2 minutes,
+    // which produces a 2-min hang per lead before logging).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     family: 4,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
   return cachedTransporter;
