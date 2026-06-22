@@ -1,0 +1,44 @@
+name: Debug — api-server state
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Diagnose
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} bash <<'REMOTE'
+            set +e
+            echo "=== curl http://127.0.0.1:3000/api/healthz ==="
+            curl -sS -i --max-time 5 http://127.0.0.1:3000/api/healthz || echo "(no response)"
+            echo
+            echo "=== curl https://itityl.ru/api/healthz (via nginx) ==="
+            curl -sS -i --max-time 5 https://itityl.ru/api/healthz || echo "(no response)"
+            echo
+            echo "=== Process on port 3000 ==="
+            sudo lsof -iTCP:3000 -sTCP:LISTEN 2>&1 || ss -tlnp | grep :3000 || echo "(nothing listening on 3000)"
+            echo
+            echo "=== systemctl status itityl-api ==="
+            sudo systemctl status itityl-api 2>&1 | head -25 || true
+            echo
+            echo "=== journalctl itityl-api last 30 lines ==="
+            sudo journalctl -u itityl-api -n 30 --no-pager 2>&1 || true
+            echo
+            echo "=== /etc/itityl-api.env (keys only, values masked) ==="
+            sudo bash -c 'if [ -f /etc/itityl-api.env ]; then grep -v "^$\|^#" /etc/itityl-api.env | awk -F= "{ printf \"%s = %s\n\", \$1, (length(\$2) > 0 ? \"[set, \" length(\$2) \" chars]\" : \"[EMPTY]\") }"; else echo "(env file missing)"; fi'
+            echo
+            echo "=== ls ~/ittool/artifacts/api-server/dist ==="
+            ls -la ~/ittool/artifacts/api-server/dist 2>/dev/null || echo "(api-server not built)"
+            echo
+            echo "=== ls /etc/systemd/system/itityl-api.service ==="
+            ls -la /etc/systemd/system/itityl-api.service 2>/dev/null || echo "(systemd unit missing)"
+          REMOTE
