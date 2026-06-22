@@ -1,0 +1,112 @@
+name: Fix — restore nginx vhost
+
+# One-shot recovery. The previous setup-vps.sh runs mangled the
+# `sites-available/itityl.ru` config by injecting a malformed block.
+# This workflow writes back the clean known-good content (recovered from
+# the dump-vhost output above the markers, plus the original /api/
+# location block that was already configured for our use), and removes
+# the bogus `itityl.ru.bak.1782157806` symlink.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Write clean vhost + reload nginx
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} bash <<'REMOTE'
+            set -euo pipefail
+            USER_HOME="$HOME"
+
+            TARGET=/etc/nginx/sites-available/itityl.ru
+            echo "Backing up current mangled file to ${TARGET}.broken.$(date +%s)"
+            sudo cp -a "${TARGET}" "${TARGET}.broken.$(date +%s)"
+
+            sudo tee "${TARGET}" > /dev/null <<NGINX
+server {
+    server_name itityl.ru www.itityl.ru;
+
+    root ${USER_HOME}/ittool/artifacts/itityl/dist/public;
+    index index.html;
+
+    # API proxy — Express server on localhost:3000 handles /api/* routes.
+    # Placed BEFORE the SPA fallback so it wins routing for /api/* paths.
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 30s;
+        client_max_body_size 1m;
+    }
+
+    # SPA fallback
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    # Long-term cache для хэшированных ассетов
+    location ~* \.(js|css|woff2|webp|jpg|jpeg|png|svg|mp4|webm|mp3)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # index.html / sitemap.xml / robots.txt — без кэша
+    location ~* ^/(index\.html|sitemap\.xml|robots\.txt)\$ {
+        expires 0;
+        add_header Cache-Control "public, max-age=0, must-revalidate";
+    }
+
+    # Security headers
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+
+    gzip on;
+    gzip_types text/css application/javascript image/svg+xml application/json text/html;
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/itityl.ru/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/itityl.ru/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+
+server {
+    if (\$host = www.itityl.ru) {
+        return 301 https://\$host\$request_uri;
+    } # managed by Certbot
+
+    if (\$host = itityl.ru) {
+        return 301 https://\$host\$request_uri;
+    } # managed by Certbot
+
+    listen 80;
+    server_name itityl.ru www.itityl.ru;
+    return 404; # managed by Certbot
+}
+NGINX
+
+            echo "Removing bogus symlink itityl.ru.bak.1782157806 (was just a link to the same file)"
+            sudo rm -f /etc/nginx/sites-enabled/itityl.ru.bak.1782157806
+
+            echo "nginx -t"
+            sudo nginx -t
+
+            echo "Reloading nginx"
+            sudo systemctl reload nginx
+
+            echo "Done. Final state:"
+            ls -la /etc/nginx/sites-enabled/
+          REMOTE

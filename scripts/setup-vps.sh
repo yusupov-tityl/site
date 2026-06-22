@@ -156,98 +156,24 @@ systemctl daemon-reload
 systemctl enable itityl-api.service >/dev/null
 
 # ── 5. nginx /api/ proxy ─────────────────────────────────────────────
-
-if [[ ! -f "${NGINX_VHOST}" ]]; then
-  echo "WARNING: ${NGINX_VHOST} not found — skipping nginx patch. Add the /api/ proxy block manually." >&2
+#
+# The original itityl.ru vhost already contains a `location /api/` block
+# proxying to 127.0.0.1:3000 — we don't need to patch nginx in setup.
+# Verify the block is present; warn (but don't fail) if it's missing
+# so the admin knows to add it. If absent, see fix-nginx.yml workflow
+# for a known-good vhost template.
+if [[ -f "${NGINX_VHOST}" ]]; then
+  if grep -qE 'location\s+/api/' "${NGINX_VHOST}"; then
+    echo "==> nginx vhost already proxies /api/ — no patch needed"
+  else
+    echo "WARNING: ${NGINX_VHOST} lacks a /api/ location block." >&2
+    echo "         Add one that proxies to http://127.0.0.1:${API_PORT}" >&2
+    echo "         (see .github/workflows/fix-nginx.yml for a template)." >&2
+  fi
 else
-  echo "==> Patching ${NGINX_VHOST} with /api/ proxy block"
-  # Self-healing patcher:
-  #   0. If the current vhost FAILS nginx -t, find the oldest .bak.*
-  #      sibling (the pristine pre-patch original) and restore from it.
-  #      This recovers from prior broken-patch runs.
-  #   1. Take a timestamped backup of the (now-known-good) vhost.
-  #   2. Strip any prior block between BEGIN/END markers (handles re-runs).
-  #   3. Build the clean proxy block in a tempfile.
-  #   4. Insert the tempfile contents before the last `}` of the vhost
-  #      via awk — no shell quoting, no escape hazards.
-  #   5. nginx -t; if it fails, restore the just-taken backup and exit.
-  if ! nginx -t 2>/dev/null; then
-    OLDEST_BAK="$(ls -1t "${NGINX_VHOST}".bak.* 2>/dev/null | tail -1 || true)"
-    if [[ -n "${OLDEST_BAK}" ]]; then
-      echo "    current vhost is broken — restoring from oldest backup ${OLDEST_BAK}"
-      cp -a "${OLDEST_BAK}" "${NGINX_VHOST}"
-      if ! nginx -t 2>/dev/null; then
-        echo "ERROR: even oldest backup ${OLDEST_BAK} fails nginx -t — manual intervention required" >&2
-        exit 1
-      fi
-    else
-      echo "ERROR: vhost broken and no .bak.* available — manual fix required" >&2
-      exit 1
-    fi
-  fi
-
-  BACKUP="${NGINX_VHOST}.bak.$(date +%s)"
-  cp -a "${NGINX_VHOST}" "${BACKUP}"
-  echo "    backup: ${BACKUP}"
-
-  BEGIN_MARK="# >>> itityl-api proxy (managed by setup-vps.sh) >>>"
-  END_MARK="# <<< itityl-api proxy <<<"
-
-  # Strip any existing managed block (between the markers, inclusive).
-  awk -v b="${BEGIN_MARK}" -v e="${END_MARK}" '
-    index($0, b) { inside = 1; next }
-    inside && index($0, e) { inside = 0; next }
-    !inside { print }
-  ' "${NGINX_VHOST}" > "${NGINX_VHOST}.stripped"
-
-  # Build the clean block in a tempfile. No shell substitutions on
-  # multi-line content — just `cat` with EOF.
-  PROXY_TMP="$(mktemp)"
-  cat > "${PROXY_TMP}" <<NGINX_BLOCK
-    ${BEGIN_MARK}
-    location /api/ {
-        proxy_pass http://127.0.0.1:${API_PORT}/api/;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 30s;
-        client_max_body_size 1m;
-    }
-    ${END_MARK}
-NGINX_BLOCK
-
-  # Insert the tempfile contents BEFORE the last `}` line in the
-  # stripped vhost. awk approach: scan once to find the line number of
-  # the last `}`, then stream and inject. Two-pass, deterministic.
-  LAST_BRACE_LINE=$(awk '/^\s*}\s*$/ { line = NR } END { print line }' "${NGINX_VHOST}.stripped")
-  if [[ -z "${LAST_BRACE_LINE}" || "${LAST_BRACE_LINE}" -lt 2 ]]; then
-    echo "ERROR: couldn't find a closing '}' in ${NGINX_VHOST} — restoring backup" >&2
-    cp -a "${BACKUP}" "${NGINX_VHOST}"
-    rm -f "${NGINX_VHOST}.stripped" "${PROXY_TMP}"
-    exit 1
-  fi
-
-  awk -v line="${LAST_BRACE_LINE}" -v injectfile="${PROXY_TMP}" '
-    NR == line {
-      while ((getline ln < injectfile) > 0) print ln
-      close(injectfile)
-    }
-    { print }
-  ' "${NGINX_VHOST}.stripped" > "${NGINX_VHOST}.new"
-
-  mv "${NGINX_VHOST}.new" "${NGINX_VHOST}"
-  rm -f "${NGINX_VHOST}.stripped" "${PROXY_TMP}"
-
-  if ! nginx -t; then
-    echo "ERROR: nginx -t failed after patch — restoring backup" >&2
-    cp -a "${BACKUP}" "${NGINX_VHOST}"
-    nginx -t
-    exit 1
-  fi
-  systemctl reload nginx
+  echo "WARNING: ${NGINX_VHOST} not found — skipping nginx checks." >&2
 fi
+
 
 # ── 6. drizzle schema push ───────────────────────────────────────────
 
