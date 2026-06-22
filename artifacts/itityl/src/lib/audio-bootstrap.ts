@@ -90,8 +90,20 @@ function notify() {
  * times. Internal `armedRef` ensures we run the heavy unlock work once.
  */
 let unlockNow: (() => void) | null = null;
+let declineNow: (() => void) | null = null;
 export function unlockAudio() {
   if (unlockNow) unlockNow();
+}
+
+/**
+ * Imperative decline — call this from EntryGate when the user explicitly
+ * picks "Войти без музыки". Tears down the document-level gesture
+ * listener so the next click anywhere on the page does NOT auto-start
+ * the music. Idempotent. The user can still manually turn music ON
+ * later via the BgMusic pill, which sets audioState.unlocked itself.
+ */
+export function declineAudio() {
+  if (declineNow) declineNow();
 }
 
 // ── Boot sequence ───────────────────────────────────────────────────
@@ -240,4 +252,16 @@ export function unlockAudio() {
   // firing. They call unlockAudio() directly inside their handler so
   // we still run in user-gesture context.
   unlockNow = unlock;
+
+  // Opposite path: user opted out of music on the EntryGate. Disarm
+  // the document-level listener AND clear unlockNow so neither a stray
+  // click on the page nor a delayed gesture event flips the audio on
+  // behind their back. They can still enable music manually via the
+  // BgMusic pill — that path uses audioState.audio.play() directly.
+  declineNow = () => {
+    armed = false;
+    unlockNow = null;
+    declineNow = null;
+    cleanup();
+  };
 })();

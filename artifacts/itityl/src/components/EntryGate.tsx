@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { m as motion, AnimatePresence } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Volume2, VolumeX } from "lucide-react";
 import { easeInOutExpo, easeOutExpo } from "@/lib/motion";
-import { unlockAudio } from "@/lib/audio-bootstrap";
+import { unlockAudio, declineAudio } from "@/lib/audio-bootstrap";
 
 type Props = { onEnter: () => void };
 
@@ -54,22 +54,22 @@ export function EntryGate({ onEnter }: Props) {
     };
   }, []);
 
-  const handleEnter = (e?: React.SyntheticEvent) => {
+  const handleEnter = (withMusic: boolean) => (e?: React.SyntheticEvent) => {
     if (leaving) return;
-    // CRITICAL: unlock audio FIRST, synchronously, while we're still inside
-    // the user-gesture task. We can't rely on the document-level click
-    // listener in audio-bootstrap because the preventDefault() below
+    // CRITICAL: decide audio state FIRST, synchronously, while we're still
+    // inside the user-gesture task. We can't rely on the document-level
+    // click listener in audio-bootstrap because the preventDefault() below
     // cancels the synthetic click on mobile after touchend, and several
     // WebViews (Telegram, in-app Yandex/VK) don't count touchend itself
-    // as a gesture activation for media-element play(). Calling the
-    // imperative unlockAudio() here guarantees we run in the same task
-    // that the touch/click produced — every engine accepts this.
-    unlockAudio();
-    // We deliberately do NOT gate on `ready` — once the button is visible
-    // the user expects every tap to register. On slow devices the loader
-    // animation might still be wrapping up, but the click should fire
-    // immediately. If we're not yet "ready", we just skip the loader-end
-    // wait and proceed.
+    // as a gesture activation for media-element play().
+    if (withMusic) {
+      unlockAudio();
+    } else {
+      // User explicitly opted out — tear down the gesture-unlock listener
+      // so a later click on the page doesn't auto-start music. They can
+      // still enable it via the BgMusic pill afterwards.
+      declineAudio();
+    }
     if (e?.preventDefault) {
       // On iOS, preventing the default click after a touchend avoids the
       // duplicate "ghost click" 300ms later that can re-trigger handlers.
@@ -77,11 +77,16 @@ export function EntryGate({ onEnter }: Props) {
     }
     setLeaving(true);
     try {
-      document.dispatchEvent(new CustomEvent("itityl:enter"));
+      document.dispatchEvent(
+        new CustomEvent("itityl:enter", { detail: { withMusic } }),
+      );
     } catch {
       /* noop */
     }
   };
+
+  const handleEnterWithMusic = handleEnter(true);
+  const handleEnterMuted = handleEnter(false);
 
   return (
     <AnimatePresence onExitComplete={onEnter}>
@@ -161,21 +166,24 @@ export function EntryGate({ onEnter }: Props) {
             {String(count).padStart(3, "0")}
           </motion.div>
 
-          {/* CTA button — appears when load finishes */}
+          {/* CTA buttons — appear when load finishes. The big disc is the
+              primary "with music" path. A smaller link beneath it offers
+              a muted entry so users on calls / in shared spaces aren't
+              ambushed by audio. Both reuse the same exit animation. */}
           <AnimatePresence>
             {ready && (
               <motion.button
                 key="enter-btn"
                 type="button"
-                onClick={handleEnter}
-                onTouchEnd={handleEnter}
+                onClick={handleEnterWithMusic}
+                onTouchEnd={handleEnterWithMusic}
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.7, ease: easeOutExpo }}
                 className="group relative z-10 flex items-center justify-center"
                 style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
-                aria-label="Войти на сайт"
+                aria-label="Войти на сайт с фоновой музыкой"
                 data-cursor="view"
                 data-cursor-label="Войти"
               >
@@ -247,8 +255,9 @@ export function EntryGate({ onEnter }: Props) {
                     }}
                   />
 
-                  <span className="relative text-[10px] md:text-xs uppercase tracking-[0.4em] text-amber-300/80 font-bold mb-2">
-                    Enter
+                  <span className="relative flex items-center gap-1.5 text-[10px] md:text-xs uppercase tracking-[0.4em] text-amber-300/80 font-bold mb-2">
+                    <Volume2 className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                    С музыкой
                   </span>
                   <span className="relative flex items-center gap-2 text-2xl md:text-3xl font-heading font-extrabold uppercase tracking-tight text-white">
                     <span>Войти</span>
@@ -256,6 +265,45 @@ export function EntryGate({ onEnter }: Props) {
                   </span>
                 </span>
               </motion.button>
+            )}
+          </AnimatePresence>
+
+          {/* Secondary entry — muted. Positioned below the main disc so the
+              primary CTA keeps its visual focal-point status.
+              We wrap in a positioned div so the motion.button can animate
+              opacity freely without its transform fighting the CSS centering. */}
+          <AnimatePresence>
+            {ready && (
+              <div
+                key="enter-muted-wrap"
+                className="absolute left-1/2 top-1/2 z-10 pointer-events-none"
+                style={{
+                  // Clears the main disc (~130px radius desktop / ~105px mobile)
+                  // with a comfortable gap before the bottom hint.
+                  transform: "translate(-50%, calc(-50% + 200px))",
+                }}
+              >
+                <motion.button
+                  type="button"
+                  onClick={handleEnterMuted}
+                  onTouchEnd={handleEnterMuted}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6, delay: 0.15, ease: easeOutExpo }}
+                  className="group/muted inline-flex items-center gap-2 px-5 py-3 text-[11px] uppercase tracking-[0.3em] font-bold text-white/70 hover:text-white border border-white/20 hover:border-white/50 backdrop-blur-sm bg-black/40 hover:bg-black/60 transition-all whitespace-nowrap pointer-events-auto"
+                  style={{
+                    touchAction: "manipulation",
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                  aria-label="Войти на сайт без фоновой музыки"
+                  data-cursor="view"
+                  data-cursor-label="Без музыки"
+                >
+                  <VolumeX className="w-3.5 h-3.5" />
+                  <span>Войти без музыки</span>
+                </motion.button>
+              </div>
             )}
           </AnimatePresence>
 

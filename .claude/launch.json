@@ -11,6 +11,16 @@
         "BASE_PATH": "/site/",
         "NODE_ENV": "production"
       }
+    },
+    {
+      "name": "itityl-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["-C", "artifacts/itityl", "dev"],
+      "port": 5173,
+      "env": {
+        "BASE_PATH": "/",
+        "PORT": "5173"
+      }
     }
   ]
 }
