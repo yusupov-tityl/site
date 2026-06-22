@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ContactRequestInputRequestType } from "./contactRequestInputRequestType";
 
 export interface ContactRequestInput {
   /**
@@ -12,25 +13,63 @@ export interface ContactRequestInput {
    * @maxLength 200
    */
   name: string;
-  /** @maxLength 320 */
-  email: string;
-  /** @maxLength 200 */
-  company?: string;
   /**
-   * @minLength 10
+   * @minLength 1
+   * @maxLength 200
+   */
+  company: string;
+  /**
+   * Должность контакта (необязательно).
+   * @maxLength 200
+   */
+  position?: string;
+  /**
+   * Email контакта. Должно быть заполнено хотя бы одно из полей email или phone.
+   * @maxLength 320
+   */
+  email?: string;
+  /**
+   * Телефон контакта (любой формат, нормализуется на сервере). Должно быть заполнено хотя бы одно из полей email или phone.
+   * @maxLength 40
+   */
+  phone?: string;
+  /**
+   * Описание задачи (необязательно).
    * @maxLength 5000
    */
-  message: string;
-  /** @maxLength 100 */
+  message?: string;
+  /** Тип запроса лида. */
+  requestType: ContactRequestInputRequestType;
+  /** Согласие на обработку персональных данных (152-ФЗ). Должно быть true. */
+  consent: boolean;
+  /**
+   * CTA-источник заявки (например, "itityl-landing:services-hero-discuss").
+   * @maxLength 200
+   */
   source?: string;
+  /**
+   * URL страницы, с которой отправлена форма.
+   * @maxLength 2048
+   */
+  pageUrl?: string;
+  /**
+   * document.referrer на момент отправки.
+   * @maxLength 2048
+   */
+  referrer?: string;
+  /** @maxLength 200 */
+  utmSource?: string;
+  /** @maxLength 200 */
+  utmMedium?: string;
+  /** @maxLength 200 */
+  utmCampaign?: string;
+  /** @maxLength 200 */
+  utmContent?: string;
+  /** @maxLength 200 */
+  utmTerm?: string;
   /**
    * Honeypot field — must be empty
    * @maxLength 200
    */
   website?: string;
-  /**
-   * Cloudflare Turnstile token; verified server-side when secret is configured.
-   * @maxLength 4096
-   */
-  captchaToken?: string;
 }

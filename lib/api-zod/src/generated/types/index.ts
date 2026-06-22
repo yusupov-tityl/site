@@ -8,5 +8,6 @@
 
 export * from "./apiErrorResponse";
 export * from "./contactRequestInput";
+export * from "./contactRequestInputRequestType";
 export * from "./contactSubmissionResult";
 export * from "./healthStatus";

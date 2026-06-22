@@ -73,32 +73,74 @@ components:
           type: string
           minLength: 2
           maxLength: 200
+        company:
+          type: string
+          minLength: 1
+          maxLength: 200
+        position:
+          type: string
+          maxLength: 200
+          description: Должность контакта (необязательно).
         email:
           type: string
           format: email
           maxLength: 320
-        company:
+          description: Email контакта. Должно быть заполнено хотя бы одно из полей email или phone.
+        phone:
           type: string
-          maxLength: 200
+          maxLength: 40
+          description: Телефон контакта (любой формат, нормализуется на сервере). Должно быть заполнено хотя бы одно из полей email или phone.
         message:
           type: string
-          minLength: 10
           maxLength: 5000
+          description: Описание задачи (необязательно).
+        requestType:
+          type: string
+          enum:
+            - diagnostics
+            - pilot
+            - consultation
+            - other
+          description: Тип запроса лида.
+        consent:
+          type: boolean
+          description: Согласие на обработку персональных данных (152-ФЗ). Должно быть true.
         source:
           type: string
-          maxLength: 100
+          maxLength: 200
+          description: CTA-источник заявки (например, "itityl-landing:services-hero-discuss").
+        pageUrl:
+          type: string
+          maxLength: 2048
+          description: URL страницы, с которой отправлена форма.
+        referrer:
+          type: string
+          maxLength: 2048
+          description: document.referrer на момент отправки.
+        utmSource:
+          type: string
+          maxLength: 200
+        utmMedium:
+          type: string
+          maxLength: 200
+        utmCampaign:
+          type: string
+          maxLength: 200
+        utmContent:
+          type: string
+          maxLength: 200
+        utmTerm:
+          type: string
+          maxLength: 200
         website:
           type: string
           description: Honeypot field — must be empty
           maxLength: 200
-        captchaToken:
-          type: string
-          description: Cloudflare Turnstile token; verified server-side when secret is configured.
-          maxLength: 4096
       required:
         - name
-        - email
-        - message
+        - company
+        - requestType
+        - consent
     ContactSubmissionResult:
       type: object
       properties:

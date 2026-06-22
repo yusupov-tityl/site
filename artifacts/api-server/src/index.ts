@@ -15,11 +15,18 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-if (process.env.TURNSTILE_SECRET_KEY) {
-  logger.info("Cloudflare Turnstile verification enabled for /contact");
+if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
+  logger.info("Telegram lead notifications enabled");
 } else {
   logger.warn(
-    "TURNSTILE_SECRET_KEY not set; /contact relies on honeypot + rate-limit only",
+    "TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID not set; leads will only be stored in DB and emailed",
+  );
+}
+if (process.env.SMTP_HOST && process.env.LEAD_EMAIL_TO) {
+  logger.info({ to: process.env.LEAD_EMAIL_TO }, "Email lead notifications enabled");
+} else {
+  logger.warn(
+    "SMTP_* / LEAD_EMAIL_TO not set; email fallback channel is disabled",
   );
 }
 

@@ -1,4 +1,19 @@
-import { useCallback, useRef, useState } from "react";
+/**
+ * ContactForm — primary lead-capture surface.
+ *
+ * Field set follows the marketing brief: name + company + position (opt) +
+ * email and/or phone (at least one) + request type + free-form message +
+ * 152-ФЗ consent + invisible honeypot.
+ *
+ * Hidden context fields (pageUrl / referrer / UTM / source) are collected
+ * at submit time, not via form state — they don't need re-rendering on
+ * every keystroke and React Hook Form's `useEffect`+`setValue` dance for
+ * static values is overkill.
+ *
+ * On success we fire a Yandex.Metrica `lead_submit` goal so sales can
+ * tie conversions back to traffic source in the Metrica funnel.
+ */
+import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { m as motion, AnimatePresence } from "framer-motion";
@@ -6,54 +21,129 @@ import { ArrowUpRight, Check, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useSubmitContact } from "@workspace/api-client-react";
 import { easeOutExpo } from "@/lib/motion";
-import { TurnstileWidget } from "./TurnstileWidget";
 
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as
-  | string
-  | undefined;
+const REQUEST_TYPES = [
+  { value: "diagnostics", label: "Диагностика процессов" },
+  { value: "pilot", label: "Пилот ИИ-решения" },
+  { value: "consultation", label: "Консультация" },
+  { value: "other", label: "Другое" },
+] as const;
 
-const contactSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Укажите имя (минимум 2 символа)")
-    .max(200, "Слишком длинное имя"),
-  company: z
-    .string()
-    .trim()
-    .max(200, "Слишком длинное название")
-    .optional()
-    .or(z.literal("")),
-  email: z
-    .string()
-    .trim()
-    .min(3, "Укажите email")
-    .max(320, "Слишком длинный email")
-    .email("Введите корректный email"),
-  message: z
-    .string()
-    .trim()
-    .min(10, "Опишите задачу подробнее (минимум 10 символов)")
-    .max(5000, "Сообщение слишком длинное"),
-  // Honeypot — must stay empty
-  website: z.string().max(200).optional(),
-});
+type RequestType = (typeof REQUEST_TYPES)[number]["value"];
+
+// Phone normaliser: keep digits + a leading +. Anything else (spaces,
+// parens, dashes) is for human readability, not for matching.
+const PHONE_PATTERN = /^[+\d][\d\s()-]{6,}$/;
+
+const contactSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2, "Укажите имя (минимум 2 символа)")
+      .max(200, "Слишком длинное имя"),
+    company: z
+      .string()
+      .trim()
+      .min(1, "Укажите название организации")
+      .max(200, "Слишком длинное название"),
+    position: z
+      .string()
+      .trim()
+      .max(200, "Слишком длинная должность")
+      .optional()
+      .or(z.literal("")),
+    email: z
+      .string()
+      .trim()
+      .max(320, "Слишком длинный email")
+      .optional()
+      .or(z.literal(""))
+      .refine(
+        (v) => !v || z.string().email().safeParse(v).success,
+        "Введите корректный email",
+      ),
+    phone: z
+      .string()
+      .trim()
+      .max(40, "Слишком длинный номер")
+      .optional()
+      .or(z.literal(""))
+      .refine(
+        (v) => !v || PHONE_PATTERN.test(v),
+        "Введите корректный телефон",
+      ),
+    message: z
+      .string()
+      .trim()
+      .max(5000, "Сообщение слишком длинное")
+      .optional()
+      .or(z.literal("")),
+    requestType: z.enum(["diagnostics", "pilot", "consultation", "other"], {
+      errorMap: () => ({ message: "Выберите тип запроса" }),
+    }),
+    consent: z.boolean().refine((v) => v === true, {
+      message: "Необходимо согласие на обработку персональных данных",
+    }),
+    // Honeypot — must stay empty
+    website: z.string().max(200).optional(),
+  })
+  .refine((data) => Boolean(data.email) || Boolean(data.phone), {
+    message: "Укажите email или телефон — хотя бы одно поле",
+    path: ["email"],
+  });
 
 type ContactFormValues = z.infer<typeof contactSchema>;
 
 const fieldBase =
   "w-full bg-transparent border-b border-black/20 focus:border-black outline-none py-3 text-base md:text-lg font-medium text-black placeholder:text-black/35 transition-colors";
 
+function collectContextFields(): {
+  pageUrl: string;
+  referrer: string;
+  utm: Record<string, string>;
+} {
+  if (typeof window === "undefined") {
+    return { pageUrl: "", referrer: "", utm: {} };
+  }
+  const url = new URL(window.location.href);
+  const utm: Record<string, string> = {};
+  for (const key of [
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_content",
+    "utm_term",
+  ]) {
+    const v = url.searchParams.get(key);
+    if (v) utm[key] = v;
+  }
+  return {
+    pageUrl: window.location.href,
+    referrer: document.referrer || "",
+    utm,
+  };
+}
+
+declare global {
+  interface Window {
+    // Yandex.Metrica counter, injected by the snippet in index.html.
+    ym?: (counterId: number, action: string, ...rest: unknown[]) => void;
+  }
+}
+
+function fireMetricaGoal(source?: string): void {
+  if (typeof window === "undefined" || typeof window.ym !== "function") return;
+  try {
+    window.ym(108772201, "reachGoal", "lead_submit", source ? { source } : {});
+  } catch {
+    /* Metrica goals are best-effort */
+  }
+}
+
 export function ContactForm({ source }: { source?: string } = {}) {
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const captchaTokenRef = useRef<string | null>(null);
-  const [captchaResetKey, setCaptchaResetKey] = useState(0);
-  const captchaEnabled = Boolean(TURNSTILE_SITE_KEY);
-
-  const handleCaptchaToken = useCallback((token: string | null) => {
-    captchaTokenRef.current = token;
-  }, []);
 
   const {
     register,
@@ -62,57 +152,75 @@ export function ContactForm({ source }: { source?: string } = {}) {
     formState: { errors, isSubmitting },
   } = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
-    defaultValues: { name: "", company: "", email: "", message: "", website: "" },
+    defaultValues: {
+      name: "",
+      company: "",
+      position: "",
+      email: "",
+      phone: "",
+      message: "",
+      requestType: "diagnostics",
+      consent: false,
+      website: "",
+    },
   });
 
   const submitContact = useSubmitContact();
 
-  const onSubmit = async (values: ContactFormValues) => {
-    setServerError(null);
-    try {
-      await submitContact.mutateAsync({
-        data: {
-          name: values.name,
-          company: values.company ? values.company : undefined,
-          email: values.email,
-          message: values.message,
-          source: source ? `itityl-landing:${source}` : "itityl-landing",
-          website: values.website ?? "",
-          captchaToken: captchaTokenRef.current ?? undefined,
-        },
-      });
-      setSubmitted(true);
-      reset();
-    } catch (err) {
-      const status = (err as { status?: number } | null)?.status;
-      // Turnstile tokens are single-use; reset the widget so the next submit
-      // gets a fresh token.
-      captchaTokenRef.current = null;
-      setCaptchaResetKey((n) => n + 1);
-      if (status === 429) {
-        setServerError(
-          "Слишком много заявок с вашего адреса. Попробуйте позже.",
-        );
-      } else if (status === 400) {
-        const apiMessage = (err as { data?: { error?: string; message?: string } } | null)
-          ?.data;
-        if (apiMessage?.error === "captcha_failed") {
+  const onSubmit = useCallback(
+    async (values: ContactFormValues) => {
+      setServerError(null);
+      const ctx = collectContextFields();
+      const fullSource = source ? `itityl-landing:${source}` : "itityl-landing";
+      try {
+        await submitContact.mutateAsync({
+          data: {
+            name: values.name,
+            company: values.company,
+            position: values.position || undefined,
+            email: values.email || undefined,
+            phone: values.phone || undefined,
+            message: values.message || undefined,
+            requestType: values.requestType,
+            consent: values.consent,
+            source: fullSource,
+            pageUrl: ctx.pageUrl || undefined,
+            referrer: ctx.referrer || undefined,
+            utmSource: ctx.utm.utm_source,
+            utmMedium: ctx.utm.utm_medium,
+            utmCampaign: ctx.utm.utm_campaign,
+            utmContent: ctx.utm.utm_content,
+            utmTerm: ctx.utm.utm_term,
+            website: values.website ?? "",
+          },
+        });
+        fireMetricaGoal(fullSource);
+        setSubmitted(true);
+        reset();
+      } catch (err) {
+        const status = (err as { status?: number } | null)?.status;
+        if (status === 429) {
           setServerError(
-            apiMessage.message ??
-              "Не удалось пройти проверку. Обновите страницу и попробуйте ещё раз.",
+            "Слишком много заявок с вашего адреса. Попробуйте позже.",
+          );
+        } else if (status === 400) {
+          const apiMessage = (
+            err as { data?: { error?: string; message?: string } } | null
+          )?.data;
+          setServerError(
+            apiMessage?.message ?? "Проверьте корректность заполнения полей.",
           );
         } else {
-          setServerError("Проверьте корректность заполнения полей.");
+          setServerError(
+            err instanceof Error
+              ? err.message
+              : "Не удалось отправить заявку. Попробуйте позже.",
+          );
         }
-      } else {
-        setServerError(
-          err instanceof Error
-            ? err.message
-            : "Не удалось отправить заявку. Попробуйте позже.",
-        );
       }
-    }
-  };
+    },
+    [reset, source, submitContact],
+  );
 
   return (
     <div className="relative">
@@ -136,10 +244,10 @@ export function ContactForm({ source }: { source?: string } = {}) {
               <Check className="w-7 h-7" strokeWidth={3} />
             </motion.div>
             <h3 className="text-3xl md:text-4xl font-heading font-extrabold uppercase tracking-tight leading-tight">
-              Спасибо! Мы свяжемся с вами в ближайшее время.
+              Спасибо! Свяжемся в течение рабочего дня.
             </h3>
             <p className="text-black/60 text-base max-w-md">
-              Заявка получена. Обычно мы отвечаем в течение одного рабочего дня.
+              Заявка получена. С вами свяжется менеджер по указанным контактам.
             </p>
             <button
               type="button"
@@ -162,7 +270,7 @@ export function ContactForm({ source }: { source?: string } = {}) {
             className="flex flex-col gap-8"
             data-testid="contact-form"
           >
-            {/* Honeypot field — hidden from users, visible to bots */}
+            {/* Honeypot — hidden from users, visible to bots */}
             <div
               aria-hidden="true"
               style={{
@@ -203,16 +311,15 @@ export function ContactForm({ source }: { source?: string } = {}) {
               </Field>
 
               <Field
-                label="Компания"
+                label="Организация"
                 error={errors.company?.message}
                 htmlFor="contact-company"
-                optional
               >
                 <input
                   id="contact-company"
                   type="text"
                   autoComplete="organization"
-                  placeholder="Название организации"
+                  placeholder="Название компании"
                   className={fieldBase}
                   data-testid="input-contact-company"
                   {...register("company")}
@@ -220,10 +327,46 @@ export function ContactForm({ source }: { source?: string } = {}) {
               </Field>
 
               <Field
+                label="Должность"
+                error={errors.position?.message}
+                htmlFor="contact-position"
+                optional
+              >
+                <input
+                  id="contact-position"
+                  type="text"
+                  autoComplete="organization-title"
+                  placeholder="Ваша роль в компании"
+                  className={fieldBase}
+                  data-testid="input-contact-position"
+                  {...register("position")}
+                />
+              </Field>
+
+              <Field
+                label="Тип запроса"
+                error={errors.requestType?.message}
+                htmlFor="contact-request-type"
+              >
+                <select
+                  id="contact-request-type"
+                  className={`${fieldBase} appearance-none cursor-pointer`}
+                  data-testid="input-contact-request-type"
+                  {...register("requestType")}
+                >
+                  {REQUEST_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field
                 label="Email"
                 error={errors.email?.message}
                 htmlFor="contact-email"
-                className="md:col-span-2"
+                hint="Email или телефон — хотя бы одно"
               >
                 <input
                   id="contact-email"
@@ -237,15 +380,32 @@ export function ContactForm({ source }: { source?: string } = {}) {
               </Field>
 
               <Field
-                label="Сообщение"
+                label="Телефон"
+                error={errors.phone?.message}
+                htmlFor="contact-phone"
+              >
+                <input
+                  id="contact-phone"
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="+7 999 123-45-67"
+                  className={fieldBase}
+                  data-testid="input-contact-phone"
+                  {...register("phone")}
+                />
+              </Field>
+
+              <Field
+                label="Опишите задачу"
                 error={errors.message?.message}
                 htmlFor="contact-message"
                 className="md:col-span-2"
+                optional
               >
                 <textarea
                   id="contact-message"
                   rows={4}
-                  placeholder="Расскажите о задаче, текущих процессах, ожидаемом эффекте"
+                  placeholder="Текущие процессы, ожидаемый эффект, ограничения"
                   className={`${fieldBase} resize-none`}
                   data-testid="input-contact-message"
                   {...register("message")}
@@ -253,13 +413,38 @@ export function ContactForm({ source }: { source?: string } = {}) {
               </Field>
             </div>
 
-            {captchaEnabled && TURNSTILE_SITE_KEY && (
-              <TurnstileWidget
-                key={captchaResetKey}
-                siteKey={TURNSTILE_SITE_KEY}
-                onToken={handleCaptchaToken}
-                className="min-h-[1px]"
+            {/* Consent checkbox — 152-ФЗ requires explicit opt-in */}
+            <label
+              className="flex items-start gap-3 text-xs text-black/65 leading-relaxed cursor-pointer select-none"
+              htmlFor="contact-consent"
+            >
+              <input
+                id="contact-consent"
+                type="checkbox"
+                className="mt-0.5 w-4 h-4 accent-black flex-shrink-0 cursor-pointer"
+                data-testid="input-contact-consent"
+                {...register("consent")}
               />
+              <span>
+                Я даю согласие на обработку персональных данных в соответствии с{" "}
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-black transition-colors"
+                >
+                  Политикой конфиденциальности
+                </a>{" "}
+                и Федеральным законом 152-ФЗ.
+              </span>
+            </label>
+            {errors.consent && (
+              <p
+                className="text-xs text-red-600 font-medium -mt-4"
+                role="alert"
+              >
+                {errors.consent.message}
+              </p>
             )}
 
             {serverError && (
@@ -297,8 +482,7 @@ export function ContactForm({ source }: { source?: string } = {}) {
                 )}
               </motion.button>
               <p className="text-xs text-black/45 max-w-xs leading-relaxed">
-                Нажимая «Отправить», вы соглашаетесь на обработку персональных
-                данных.
+                Ответим в течение одного рабочего дня.
               </p>
             </div>
           </motion.form>
@@ -313,6 +497,7 @@ function Field({
   error,
   htmlFor,
   optional,
+  hint,
   className,
   children,
 }: {
@@ -320,6 +505,7 @@ function Field({
   error?: string;
   htmlFor: string;
   optional?: boolean;
+  hint?: string;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -333,6 +519,11 @@ function Field({
         {optional && (
           <span className="text-black/30 normal-case tracking-normal text-[10px] font-medium">
             необязательно
+          </span>
+        )}
+        {hint && (
+          <span className="text-black/35 normal-case tracking-normal text-[10px] font-medium">
+            {hint}
           </span>
         )}
       </label>

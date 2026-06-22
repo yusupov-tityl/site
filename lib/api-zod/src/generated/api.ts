@@ -22,43 +22,100 @@ export const HealthCheckResponse = zod.object({
 export const submitContactBodyNameMin = 2;
 export const submitContactBodyNameMax = 200;
 
-export const submitContactBodyEmailMax = 320;
-
 export const submitContactBodyCompanyMax = 200;
 
-export const submitContactBodyMessageMin = 10;
+export const submitContactBodyPositionMax = 200;
+
+export const submitContactBodyEmailMax = 320;
+
+export const submitContactBodyPhoneMax = 40;
+
 export const submitContactBodyMessageMax = 5000;
 
-export const submitContactBodySourceMax = 100;
+export const submitContactBodySourceMax = 200;
+
+export const submitContactBodyPageUrlMax = 2048;
+
+export const submitContactBodyReferrerMax = 2048;
+
+export const submitContactBodyUtmSourceMax = 200;
+
+export const submitContactBodyUtmMediumMax = 200;
+
+export const submitContactBodyUtmCampaignMax = 200;
+
+export const submitContactBodyUtmContentMax = 200;
+
+export const submitContactBodyUtmTermMax = 200;
 
 export const submitContactBodyWebsiteMax = 200;
-
-export const submitContactBodyCaptchaTokenMax = 4096;
 
 export const SubmitContactBody = zod.object({
   name: zod
     .string()
     .min(submitContactBodyNameMin)
     .max(submitContactBodyNameMax),
-  email: zod.string().email().max(submitContactBodyEmailMax),
-  company: zod.string().max(submitContactBodyCompanyMax).optional(),
+  company: zod.string().min(1).max(submitContactBodyCompanyMax),
+  position: zod
+    .string()
+    .max(submitContactBodyPositionMax)
+    .optional()
+    .describe("Должность контакта (необязательно)."),
+  email: zod
+    .string()
+    .email()
+    .max(submitContactBodyEmailMax)
+    .optional()
+    .describe(
+      "Email контакта. Должно быть заполнено хотя бы одно из полей email или phone.",
+    ),
+  phone: zod
+    .string()
+    .max(submitContactBodyPhoneMax)
+    .optional()
+    .describe(
+      "Телефон контакта (любой формат, нормализуется на сервере). Должно быть заполнено хотя бы одно из полей email или phone.",
+    ),
   message: zod
     .string()
-    .min(submitContactBodyMessageMin)
-    .max(submitContactBodyMessageMax),
-  source: zod.string().max(submitContactBodySourceMax).optional(),
+    .max(submitContactBodyMessageMax)
+    .optional()
+    .describe("Описание задачи (необязательно)."),
+  requestType: zod
+    .enum(["diagnostics", "pilot", "consultation", "other"])
+    .describe("Тип запроса лида."),
+  consent: zod
+    .boolean()
+    .describe(
+      "Согласие на обработку персональных данных (152-ФЗ). Должно быть true.",
+    ),
+  source: zod
+    .string()
+    .max(submitContactBodySourceMax)
+    .optional()
+    .describe(
+      'CTA-источник заявки (например, \"itityl-landing:services-hero-discuss\").',
+    ),
+  pageUrl: zod
+    .string()
+    .max(submitContactBodyPageUrlMax)
+    .optional()
+    .describe("URL страницы, с которой отправлена форма."),
+  referrer: zod
+    .string()
+    .max(submitContactBodyReferrerMax)
+    .optional()
+    .describe("document.referrer на момент отправки."),
+  utmSource: zod.string().max(submitContactBodyUtmSourceMax).optional(),
+  utmMedium: zod.string().max(submitContactBodyUtmMediumMax).optional(),
+  utmCampaign: zod.string().max(submitContactBodyUtmCampaignMax).optional(),
+  utmContent: zod.string().max(submitContactBodyUtmContentMax).optional(),
+  utmTerm: zod.string().max(submitContactBodyUtmTermMax).optional(),
   website: zod
     .string()
     .max(submitContactBodyWebsiteMax)
     .optional()
     .describe("Honeypot field — must be empty"),
-  captchaToken: zod
-    .string()
-    .max(submitContactBodyCaptchaTokenMax)
-    .optional()
-    .describe(
-      "Cloudflare Turnstile token; verified server-side when secret is configured.",
-    ),
 });
 
 export const SubmitContactResponse = zod.object({
