@@ -208,23 +208,29 @@ async function sendTelegram(req: ContactNotification): Promise<boolean> {
     );
     return false;
   }
+  // Russian VPS hosts cannot reach api.telegram.org directly (RKN block).
+  // Honour TELEGRAM_RELAY_URL pointing at a Cloudflare Worker / function
+  // that forwards to Telegram from a clean network. The relay must
+  // accept the exact same POST body Telegram does and respond with
+  // Telegram's JSON. When unset, we fall back to direct API.
+  const relayUrl = process.env.TELEGRAM_RELAY_URL?.trim();
+  const endpoint = relayUrl
+    ? `${relayUrl.replace(/\/+$/, "")}/bot${token}/sendMessage`
+    : `https://api.telegram.org/bot${token}/sendMessage`;
   try {
     // Use undici.fetch (NOT global fetch) so the IPV4_AGENT dispatcher
     // is honored — see IPV4_AGENT comment.
-    const response = await undiciFetch(
-      `https://api.telegram.org/bot${token}/sendMessage`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: formatTelegramMessage(req),
-          parse_mode: "HTML",
-          disable_web_page_preview: true,
-        }),
-        dispatcher: IPV4_AGENT,
-      },
-    );
+    const response = await undiciFetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: formatTelegramMessage(req),
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+      }),
+      dispatcher: IPV4_AGENT,
+    });
     if (!response.ok) {
       const body = await response.text();
       logger.error(
