@@ -160,14 +160,34 @@ systemctl enable itityl-api.service >/dev/null
 if [[ ! -f "${NGINX_VHOST}" ]]; then
   echo "WARNING: ${NGINX_VHOST} not found — skipping nginx patch. Add the /api/ proxy block manually." >&2
 else
-  MARKER="# >>> itityl-api proxy (managed by setup-vps.sh) >>>"
-  if ! grep -qF "${MARKER}" "${NGINX_VHOST}"; then
-    echo "==> Patching ${NGINX_VHOST} with /api/ proxy block"
-    # Insert proxy block just before the closing `}` of the LAST
-    # server block. sed magic: append before the final `}` line.
-    PROXY_BLOCK=$(cat <<NGINX
+  echo "==> Patching ${NGINX_VHOST} with /api/ proxy block"
+  # Self-healing patcher:
+  #   1. Take a timestamped backup of the current vhost.
+  #   2. Strip any prior block between BEGIN/END markers (handles re-runs
+  #      AND recovers from a broken previous patch attempt).
+  #   3. Build the clean proxy block in a tempfile.
+  #   4. Insert the tempfile contents before the last `}` of the vhost
+  #      via awk — no shell quoting, no escape hazards.
+  #   5. nginx -t; if it fails, restore the backup and exit non-zero.
+  BACKUP="${NGINX_VHOST}.bak.$(date +%s)"
+  cp -a "${NGINX_VHOST}" "${BACKUP}"
+  echo "    backup: ${BACKUP}"
 
-    ${MARKER}
+  BEGIN_MARK="# >>> itityl-api proxy (managed by setup-vps.sh) >>>"
+  END_MARK="# <<< itityl-api proxy <<<"
+
+  # Strip any existing managed block (between the markers, inclusive).
+  awk -v b="${BEGIN_MARK}" -v e="${END_MARK}" '
+    index($0, b) { inside = 1; next }
+    inside && index($0, e) { inside = 0; next }
+    !inside { print }
+  ' "${NGINX_VHOST}" > "${NGINX_VHOST}.stripped"
+
+  # Build the clean block in a tempfile. No shell substitutions on
+  # multi-line content — just `cat` with EOF.
+  PROXY_TMP="$(mktemp)"
+  cat > "${PROXY_TMP}" <<NGINX_BLOCK
+    ${BEGIN_MARK}
     location /api/ {
         proxy_pass http://127.0.0.1:${API_PORT}/api/;
         proxy_http_version 1.1;
@@ -178,30 +198,38 @@ else
         proxy_read_timeout 30s;
         client_max_body_size 1m;
     }
-    # <<< itityl-api proxy <<<
+    ${END_MARK}
+NGINX_BLOCK
 
-NGINX
-)
-    # Use python for safe, deterministic in-place insertion before the
-    # last `}` — sed-based attempts are fragile on multi-server-block files.
-    python3 - "$NGINX_VHOST" <<PY
-import pathlib, sys
-p = pathlib.Path(sys.argv[1])
-text = p.read_text()
-block = '''${PROXY_BLOCK//$'\n'/\\n}'''
-# Find last closing brace and insert block before it.
-idx = text.rstrip().rfind('}')
-if idx < 0:
-    sys.exit("No '}' found in nginx vhost — refusing to patch")
-new = text[:idx] + block + text[idx:]
-p.write_text(new)
-print(f"Patched {p}")
-PY
-    nginx -t
-    systemctl reload nginx
-  else
-    echo "==> ${NGINX_VHOST} already has the proxy block; skipping"
+  # Insert the tempfile contents BEFORE the last `}` line in the
+  # stripped vhost. awk approach: scan once to find the line number of
+  # the last `}`, then stream and inject. Two-pass, deterministic.
+  LAST_BRACE_LINE=$(awk '/^\s*}\s*$/ { line = NR } END { print line }' "${NGINX_VHOST}.stripped")
+  if [[ -z "${LAST_BRACE_LINE}" || "${LAST_BRACE_LINE}" -lt 2 ]]; then
+    echo "ERROR: couldn't find a closing '}' in ${NGINX_VHOST} — restoring backup" >&2
+    cp -a "${BACKUP}" "${NGINX_VHOST}"
+    rm -f "${NGINX_VHOST}.stripped" "${PROXY_TMP}"
+    exit 1
   fi
+
+  awk -v line="${LAST_BRACE_LINE}" -v injectfile="${PROXY_TMP}" '
+    NR == line {
+      while ((getline ln < injectfile) > 0) print ln
+      close(injectfile)
+    }
+    { print }
+  ' "${NGINX_VHOST}.stripped" > "${NGINX_VHOST}.new"
+
+  mv "${NGINX_VHOST}.new" "${NGINX_VHOST}"
+  rm -f "${NGINX_VHOST}.stripped" "${PROXY_TMP}"
+
+  if ! nginx -t; then
+    echo "ERROR: nginx -t failed after patch — restoring backup" >&2
+    cp -a "${BACKUP}" "${NGINX_VHOST}"
+    nginx -t
+    exit 1
+  fi
+  systemctl reload nginx
 fi
 
 # ── 6. drizzle schema push ───────────────────────────────────────────
