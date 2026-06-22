@@ -1,0 +1,51 @@
+name: Debug — dump nginx vhost
+
+# One-shot diagnostic: dumps the current state of the nginx vhost(s)
+# and all backups so we can see exactly what's there and rebuild a
+# clean config. Read-only — touches nothing.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Dump nginx state
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} bash <<'EOF'
+            set +e
+            echo "=== ls /etc/nginx/sites-enabled/ ==="
+            ls -la /etc/nginx/sites-enabled/
+            echo
+            echo "=== ls /etc/nginx/sites-available/ ==="
+            ls -la /etc/nginx/sites-available/
+            echo
+            echo "=== /etc/nginx/sites-enabled/itityl.ru* file list ==="
+            ls -la /etc/nginx/sites-enabled/itityl.ru* 2>/dev/null
+            echo
+            for f in /etc/nginx/sites-enabled/itityl.ru /etc/nginx/sites-enabled/itityl.ru.bak.*; do
+              if [ -f "$f" ]; then
+                echo "=== ===== $f ===== ==="
+                cat "$f"
+                echo
+                echo "=== END $f ==="
+                echo
+              fi
+            done
+            echo "=== sites-available/itityl.ru (if exists) ==="
+            cat /etc/nginx/sites-available/itityl.ru 2>/dev/null || echo "(not present)"
+            echo
+            echo "=== certbot cert paths ==="
+            ls /etc/letsencrypt/live/ 2>/dev/null
+            echo
+            echo "=== nginx -T (summary, first 200 lines) ==="
+            sudo nginx -T 2>&1 | head -200
+          EOF
