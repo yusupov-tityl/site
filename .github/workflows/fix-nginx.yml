@@ -1,11 +1,9 @@
 name: Fix — restore nginx vhost
 
 # One-shot recovery. The previous setup-vps.sh runs mangled the
-# `sites-available/itityl.ru` config by injecting a malformed block.
-# This workflow writes back the clean known-good content (recovered from
-# the dump-vhost output above the markers, plus the original /api/
-# location block that was already configured for our use), and removes
-# the bogus `itityl.ru.bak.1782157806` symlink.
+# sites-available/itityl.ru config by injecting a malformed block.
+# Writes back the clean known-good content (base64-encoded inline below
+# to dodge YAML/heredoc parsing hell) and removes the bogus symlink.
 
 on:
   workflow_dispatch:
@@ -22,83 +20,28 @@ jobs:
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Write clean vhost + reload nginx
+        env:
+          # Base64-encoded vhost content. __USER_HOME__ is a literal
+          # placeholder we substitute on the VPS to the deploying user's
+          # $HOME so the `root` path stays portable across hosts.
+          VHOST_B64: "c2VydmVyIHsKICAgIHNlcnZlcl9uYW1lIGl0aXR5bC5ydSB3d3cuaXRpdHlsLnJ1OwoKICAgIHJvb3QgX19VU0VSX0hPTUVfXy9pdHRvb2wvYXJ0aWZhY3RzL2l0aXR5bC9kaXN0L3B1YmxpYzsKICAgIGluZGV4IGluZGV4Lmh0bWw7CgogICAgIyBBUEkgcHJveHkg4oCUIEV4cHJlc3Mgc2VydmVyIG9uIGxvY2FsaG9zdDozMDAwIGhhbmRsZXMgL2FwaS8qIHJvdXRlcy4KICAgICMgUGxhY2VkIEJFRk9SRSB0aGUgU1BBIGZhbGxiYWNrIHNvIGl0IHdpbnMgcm91dGluZyBmb3IgL2FwaS8qIHBhdGhzLgogICAgbG9jYXRpb24gL2FwaS8gewogICAgICAgIHByb3h5X3Bhc3MgaHR0cDovLzEyNy4wLjAuMTozMDAwOwogICAgICAgIHByb3h5X2h0dHBfdmVyc2lvbiAxLjE7CiAgICAgICAgcHJveHlfc2V0X2hlYWRlciBIb3N0ICRob3N0OwogICAgICAgIHByb3h5X3NldF9oZWFkZXIgWC1SZWFsLUlQICRyZW1vdGVfYWRkcjsKICAgICAgICBwcm94eV9zZXRfaGVhZGVyIFgtRm9yd2FyZGVkLUZvciAkcHJveHlfYWRkX3hfZm9yd2FyZGVkX2ZvcjsKICAgICAgICBwcm94eV9zZXRfaGVhZGVyIFgtRm9yd2FyZGVkLVByb3RvICRzY2hlbWU7CiAgICAgICAgcHJveHlfcmVhZF90aW1lb3V0IDMwczsKICAgICAgICBjbGllbnRfbWF4X2JvZHlfc2l6ZSAxbTsKICAgIH0KCiAgICAjIFNQQSBmYWxsYmFjawogICAgbG9jYXRpb24gLyB7CiAgICAgICAgdHJ5X2ZpbGVzICR1cmkgJHVyaS8gL2luZGV4Lmh0bWw7CiAgICB9CgogICAgIyBMb25nLXRlcm0gY2FjaGUg0LTQu9GPINGF0Y3RiNC40YDQvtCy0LDQvdC90YvRhSDQsNGB0YHQtdGC0L7QsgogICAgbG9jYXRpb24gfiogXC4oanN8Y3NzfHdvZmYyfHdlYnB8anBnfGpwZWd8cG5nfHN2Z3xtcDR8d2VibXxtcDMpJCB7CiAgICAgICAgZXhwaXJlcyAxeTsKICAgICAgICBhZGRfaGVhZGVyIENhY2hlLUNvbnRyb2wgInB1YmxpYywgaW1tdXRhYmxlIjsKICAgIH0KCiAgICAjIGluZGV4Lmh0bWwgLyBzaXRlbWFwLnhtbCAvIHJvYm90cy50eHQg4oCUINCx0LXQtyDQutGN0YjQsAogICAgbG9jYXRpb24gfiogXi8oaW5kZXhcLmh0bWx8c2l0ZW1hcFwueG1sfHJvYm90c1wudHh0KSQgewogICAgICAgIGV4cGlyZXMgMDsKICAgICAgICBhZGRfaGVhZGVyIENhY2hlLUNvbnRyb2wgInB1YmxpYywgbWF4LWFnZT0wLCBtdXN0LXJldmFsaWRhdGUiOwogICAgfQoKICAgICMgU2VjdXJpdHkgaGVhZGVycwogICAgYWRkX2hlYWRlciBYLUNvbnRlbnQtVHlwZS1PcHRpb25zICJub3NuaWZmIiBhbHdheXM7CiAgICBhZGRfaGVhZGVyIFJlZmVycmVyLVBvbGljeSAic3RyaWN0LW9yaWdpbi13aGVuLWNyb3NzLW9yaWdpbiIgYWx3YXlzOwogICAgYWRkX2hlYWRlciBQZXJtaXNzaW9ucy1Qb2xpY3kgImdlb2xvY2F0aW9uPSgpLCBtaWNyb3Bob25lPSgpLCBjYW1lcmE9KCkiIGFsd2F5czsKCiAgICBnemlwIG9uOwogICAgZ3ppcF90eXBlcyB0ZXh0L2NzcyBhcHBsaWNhdGlvbi9qYXZhc2NyaXB0IGltYWdlL3N2Zyt4bWwgYXBwbGljYXRpb24vanNvbiB0ZXh0L2h0bWw7CgogICAgbGlzdGVuIDQ0MyBzc2w7ICMgbWFuYWdlZCBieSBDZXJ0Ym90CiAgICBzc2xfY2VydGlmaWNhdGUgL2V0Yy9sZXRzZW5jcnlwdC9saXZlL2l0aXR5bC5ydS9mdWxsY2hhaW4ucGVtOyAjIG1hbmFnZWQgYnkgQ2VydGJvdAogICAgc3NsX2NlcnRpZmljYXRlX2tleSAvZXRjL2xldHNlbmNyeXB0L2xpdmUvaXRpdHlsLnJ1L3ByaXZrZXkucGVtOyAjIG1hbmFnZWQgYnkgQ2VydGJvdAogICAgaW5jbHVkZSAvZXRjL2xldHNlbmNyeXB0L29wdGlvbnMtc3NsLW5naW54LmNvbmY7ICMgbWFuYWdlZCBieSBDZXJ0Ym90CiAgICBzc2xfZGhwYXJhbSAvZXRjL2xldHNlbmNyeXB0L3NzbC1kaHBhcmFtcy5wZW07ICMgbWFuYWdlZCBieSBDZXJ0Ym90Cn0KCnNlcnZlciB7CiAgICBpZiAoJGhvc3QgPSB3d3cuaXRpdHlsLnJ1KSB7CiAgICAgICAgcmV0dXJuIDMwMSBodHRwczovLyRob3N0JHJlcXVlc3RfdXJpOwogICAgfSAjIG1hbmFnZWQgYnkgQ2VydGJvdAoKICAgIGlmICgkaG9zdCA9IGl0aXR5bC5ydSkgewogICAgICAgIHJldHVybiAzMDEgaHR0cHM6Ly8kaG9zdCRyZXF1ZXN0X3VyaTsKICAgIH0gIyBtYW5hZ2VkIGJ5IENlcnRib3QKCiAgICBsaXN0ZW4gODA7CiAgICBzZXJ2ZXJfbmFtZSBpdGl0eWwucnUgd3d3Lml0aXR5bC5ydTsKICAgIHJldHVybiA0MDQ7ICMgbWFuYWdlZCBieSBDZXJ0Ym90Cn0K"
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} bash <<'REMOTE'
+          ssh -o SendEnv=VHOST_B64 "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "VHOST_B64='${VHOST_B64}' bash -s" <<'REMOTE'
             set -euo pipefail
-            USER_HOME="$HOME"
-
             TARGET=/etc/nginx/sites-available/itityl.ru
             echo "Backing up current mangled file to ${TARGET}.broken.$(date +%s)"
-            sudo cp -a "${TARGET}" "${TARGET}.broken.$(date +%s)"
+            sudo cp -a "${TARGET}" "${TARGET}.broken.$(date +%s)" 2>/dev/null || true
 
-            sudo tee "${TARGET}" > /dev/null <<NGINX
-server {
-    server_name itityl.ru www.itityl.ru;
+            # Decode the vhost template and substitute $HOME.
+            DECODED="$(mktemp)"
+            echo "${VHOST_B64}" | base64 -d > "${DECODED}"
+            sed -i "s|__USER_HOME__|${HOME}|g" "${DECODED}"
 
-    root ${USER_HOME}/ittool/artifacts/itityl/dist/public;
-    index index.html;
+            sudo install -m 644 -o root -g root "${DECODED}" "${TARGET}"
+            rm -f "${DECODED}"
 
-    # API proxy — Express server on localhost:3000 handles /api/* routes.
-    # Placed BEFORE the SPA fallback so it wins routing for /api/* paths.
-    location /api/ {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 30s;
-        client_max_body_size 1m;
-    }
-
-    # SPA fallback
-    location / {
-        try_files \$uri \$uri/ /index.html;
-    }
-
-    # Long-term cache для хэшированных ассетов
-    location ~* \.(js|css|woff2|webp|jpg|jpeg|png|svg|mp4|webm|mp3)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # index.html / sitemap.xml / robots.txt — без кэша
-    location ~* ^/(index\.html|sitemap\.xml|robots\.txt)\$ {
-        expires 0;
-        add_header Cache-Control "public, max-age=0, must-revalidate";
-    }
-
-    # Security headers
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
-
-    gzip on;
-    gzip_types text/css application/javascript image/svg+xml application/json text/html;
-
-    listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/itityl.ru/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/itityl.ru/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-}
-
-server {
-    if (\$host = www.itityl.ru) {
-        return 301 https://\$host\$request_uri;
-    } # managed by Certbot
-
-    if (\$host = itityl.ru) {
-        return 301 https://\$host\$request_uri;
-    } # managed by Certbot
-
-    listen 80;
-    server_name itityl.ru www.itityl.ru;
-    return 404; # managed by Certbot
-}
-NGINX
-
-            echo "Removing bogus symlink itityl.ru.bak.1782157806 (was just a link to the same file)"
+            echo "Removing bogus symlink itityl.ru.bak.1782157806"
             sudo rm -f /etc/nginx/sites-enabled/itityl.ru.bak.1782157806
 
             echo "nginx -t"
@@ -107,6 +50,7 @@ NGINX
             echo "Reloading nginx"
             sudo systemctl reload nginx
 
-            echo "Done. Final state:"
+            echo
+            echo "Final state:"
             ls -la /etc/nginx/sites-enabled/
           REMOTE
