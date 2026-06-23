@@ -167,23 +167,24 @@ export function EntryGate({ onEnter }: Props) {
           </motion.div>
 
           {/* CTA buttons — appear when load finishes. The big disc is the
-              primary "with music" path. A smaller link beneath it offers
-              a muted entry so users on calls / in shared spaces aren't
-              ambushed by audio. Both reuse the same exit animation. */}
+              primary "muted" path: most visitors land in shared spaces,
+              calls, or open offices and should not be surprise-blasted
+              with audio. A smaller pill beneath it offers an explicit
+              opt-in for music. Both reuse the same exit animation. */}
           <AnimatePresence>
             {ready && (
               <motion.button
                 key="enter-btn"
                 type="button"
-                onClick={handleEnterWithMusic}
-                onTouchEnd={handleEnterWithMusic}
+                onClick={handleEnterMuted}
+                onTouchEnd={handleEnterMuted}
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.7, ease: easeOutExpo }}
                 className="group relative z-10 flex items-center justify-center"
                 style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
-                aria-label="Войти на сайт с фоновой музыкой"
+                aria-label="Войти на сайт без фоновой музыки"
                 data-cursor="view"
                 data-cursor-label="Войти"
               >
@@ -256,8 +257,8 @@ export function EntryGate({ onEnter }: Props) {
                   />
 
                   <span className="relative flex items-center gap-1.5 text-[10px] md:text-xs uppercase tracking-[0.4em] text-amber-300/80 font-bold mb-2">
-                    <Volume2 className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                    С музыкой
+                    <VolumeX className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                    Без музыки
                   </span>
                   <span className="relative flex items-center gap-2 text-2xl md:text-3xl font-heading font-extrabold uppercase tracking-tight text-white">
                     <span>Войти</span>
@@ -285,23 +286,23 @@ export function EntryGate({ onEnter }: Props) {
               >
                 <motion.button
                   type="button"
-                  onClick={handleEnterMuted}
-                  onTouchEnd={handleEnterMuted}
+                  onClick={handleEnterWithMusic}
+                  onTouchEnd={handleEnterWithMusic}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.6, delay: 0.15, ease: easeOutExpo }}
-                  className="group/muted inline-flex items-center gap-2 px-5 py-3 text-[11px] uppercase tracking-[0.3em] font-bold text-white/70 hover:text-white border border-white/20 hover:border-white/50 backdrop-blur-sm bg-black/40 hover:bg-black/60 transition-all whitespace-nowrap pointer-events-auto"
+                  className="group/music inline-flex items-center gap-2 px-5 py-3 text-[11px] uppercase tracking-[0.3em] font-bold text-white/70 hover:text-white border border-white/20 hover:border-white/50 backdrop-blur-sm bg-black/40 hover:bg-black/60 transition-all whitespace-nowrap pointer-events-auto"
                   style={{
                     touchAction: "manipulation",
                     WebkitTapHighlightColor: "transparent",
                   }}
-                  aria-label="Войти на сайт без фоновой музыки"
+                  aria-label="Войти на сайт с фоновой музыкой"
                   data-cursor="view"
-                  data-cursor-label="Без музыки"
+                  data-cursor-label="С музыкой"
                 >
-                  <VolumeX className="w-3.5 h-3.5" />
-                  <span>Войти без музыки</span>
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span>Войти с музыкой</span>
                 </motion.button>
               </div>
             )}
