@@ -1,6 +1,6 @@
 import { lazy, Suspense, useRef } from "react";
 import { Link } from "wouter";
-import { ArrowUpRight, ArrowDown } from "lucide-react";
+import { ArrowUpRight, ArrowDown, Clock } from "lucide-react";
 const iconBase = `${import.meta.env.BASE_URL}icons/`;
 const iconProof = `${iconBase}cap-proof.png`;
 const iconData = `${iconBase}cap-data.png`;
@@ -19,6 +19,9 @@ import { ServicesList } from "@/components/ServicesList";
 import { MarqueeRow } from "@/components/MarqueeRow";
 import { useIntro } from "@/lib/intro-context";
 import { useSeo } from "@/lib/useSeo";
+import { useContactModal } from "@/lib/contact-modal";
+import { SectionHeader } from "@/components/landing/SectionHeader";
+import { NumberedCard } from "@/components/landing/NumberedCard";
 
 // Code-split the contact form (pulls in react-hook-form + zod + Turnstile).
 // BgMusic is now mounted globally in App.tsx so it survives route changes.
@@ -69,6 +72,25 @@ const outcomes = [
     n: "04",
     title: "Понятная дорожная карта внедрения",
     desc: "Приоритизированный портфель ИИ-инициатив с понятной логикой запуска.",
+  },
+];
+
+const security = [
+  {
+    title: "On-premise / частное облако",
+    desc: "Решения разворачиваются в инфраструктуре заказчика. Данные физически не выходят за периметр организации.",
+  },
+  {
+    title: "Российские LLM-модели",
+    desc: "Работаем с отечественными моделями (YandexGPT, GigaChat, T-lite) и open-source (Qwen, LLaMA). Никакой зависимости от зарубежных API.",
+  },
+  {
+    title: "152-ФЗ и требования регуляторов",
+    desc: "Обработка персональных данных по №152-ФЗ. Готовы к работе с организациями госсектора и КИИ.",
+  },
+  {
+    title: "Прозрачность и аудит",
+    desc: "Логирование запросов и ответов модели, версионирование моделей и промптов, возможность ретроспективного анализа решений ИИ.",
   },
 ];
 
@@ -257,6 +279,7 @@ export default function Home() {
     path: "/",
   });
   const { heroDelay: HERO_DELAY } = useIntro();
+  const { open: openContact } = useContactModal();
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress: heroProgress } = useScroll({
     target: heroRef,
@@ -360,18 +383,24 @@ export default function Home() {
           >
             <span className="w-8 h-px bg-amber-300/70" />
             ИИ‑компания · Москва
-            <span className="hidden sm:inline-block w-px h-3 bg-amber-300/40" />
-            {/* Commercial offer surfaced from meta tags into the visible
-                hero — the brief flagged this as a primary CTR lever
-                ("пилот за 4–8 недель" was buried in meta description). */}
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 border border-amber-300/40 bg-amber-300/10 text-amber-200 rounded-full normal-case tracking-normal text-[11px] font-semibold">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
-              Пилот за 4–8 недель
-            </span>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-end">
             <div className="lg:col-span-8">
+              {/* Primary commercial trigger surfaced into the hero. Opens the
+                  contact modal — the brief flagged this as the top CTR lever. */}
+              <motion.button
+                type="button"
+                onClick={() => openContact("hero-pilot-badge")}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: easeOutExpo, delay: HERO_DELAY }}
+                data-cursor="link"
+                className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-amber-300/40 bg-black/40 backdrop-blur-sm px-4 py-2 text-sm font-semibold text-amber-200 hover:bg-amber-300/10 hover:border-amber-300/70 transition-colors"
+              >
+                <Clock className="w-4 h-4 text-amber-300" />
+                Пилот ИИ за 4–8 недель
+              </motion.button>
               <h1 className="font-heading font-extrabold uppercase tracking-tighter leading-[0.92] text-[clamp(44px,8.2vw,132px)]">
                 <SplitText
                   as="span"
@@ -538,6 +567,28 @@ export default function Home() {
               ))}
             </div>
           </div>
+        </motion.div>
+      </section>
+
+      {/* ── SECURITY (Безопасность и данные) ──
+          Критичный блок доверия для B2G/госсектора. */}
+      <section className="py-32 px-6 md:px-10 bg-black text-white border-b border-white/15">
+        <SectionHeader
+          index="04"
+          label="Безопасность"
+          title="Данные не покидают ваш контур"
+          body="Работаем on-premise или в частном облаке заказчика. Соответствуем требованиям 152-ФЗ. Используем open-source и российские LLM-модели."
+        />
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.05 }}
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
+          className="max-w-[1600px] mx-auto mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-white/10"
+        >
+          {security.map((s, i) => (
+            <NumberedCard key={s.title} index={i + 1} title={s.title} desc={s.desc} />
+          ))}
         </motion.div>
       </section>
 
