@@ -1,5 +1,11 @@
 name: Deploy to VPS
 
+# Frontend now builds on the CI runner so Puppeteer's body-snapshot
+# prerender step can use the preinstalled Chrome. The resulting
+# dist/public/ is rsync-ed onto the VPS. api-server still builds on
+# the VPS — it reads /etc/itityl-api.env (root-readable) directly
+# from the systemd unit's env file, so CI never needs the secrets.
+
 on:
   push:
     branches: [main]
@@ -9,6 +15,33 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build frontend (vite + prerender with body snapshot)
+        env:
+          PORT: "5173"
+          BASE_PATH: "/"
+          NODE_ENV: "production"
+          # ubuntu-latest preinstalls Chrome at this path. Tell our
+          # prerender script to use it for puppeteer-core.
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
+        run: pnpm -C artifacts/itityl run build
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -16,38 +49,38 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy on VPS
+      - name: Rsync prerendered dist to VPS
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
+            artifacts/itityl/dist/public/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/ittool/artifacts/itityl/dist/public/
+
+      - name: Sync api-server source + rebuild + restart
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} bash <<'EOF'
             set -e
             cd ~/ittool
             git fetch origin
+            # Keep ~/ittool in sync with main so api-server build sees
+            # latest code. We DON'T touch artifacts/itityl/dist — that
+            # was just rsynced from CI and is fresher than what git
+            # would restore.
+            git stash push -m "preserve-rsynced-dist" -- artifacts/itityl/dist 2>/dev/null || true
             git reset --hard origin/main
-            pnpm install --frozen-lockfile
+            git stash pop 2>/dev/null || true
 
-            # ── Frontend ──────────────────────────────────────────────
-            cd artifacts/itityl
-            PORT=5173 BASE_PATH=/ NODE_ENV=production pnpm run build
-            cd ../..
-
-            # ── Backend (api-server) ──────────────────────────────────
-            # Build is idempotent; restart picks up the new dist + any
-            # schema changes that flow through @workspace/db. The systemd
-            # unit reads /etc/itityl-api.env so we don't touch secrets here.
+            pnpm install --no-frozen-lockfile
             pnpm -C artifacts/api-server run build
 
-            # Apply DB schema changes (drizzle-kit push). DATABASE_URL is
-            # exported from the unit's env file so we don't put it in CI.
+            # Apply DB schema changes if env file is present.
             if [ -f /etc/itityl-api.env ]; then
               # shellcheck disable=SC2046
               export $(grep -E '^DATABASE_URL=' /etc/itityl-api.env | xargs)
-              pnpm -C lib/db run push-force || echo "drizzle push failed — investigate before lead form submits"
+              pnpm -C lib/db run push-force || echo "drizzle push failed — investigate"
               unset DATABASE_URL
             fi
 
-            # Restart only if the unit exists (first deploy may pre-date
-            # setup-vps.sh). Both `restart` and `reload nginx` are safe
-            # no-ops when nothing is mounted yet.
             if systemctl list-unit-files | grep -q itityl-api.service; then
               sudo systemctl restart itityl-api.service
             fi

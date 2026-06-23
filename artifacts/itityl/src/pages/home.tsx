@@ -356,10 +356,18 @@ export default function Home() {
               ease: easeOutExpo,
               delay: HERO_DELAY,
             }}
-            className="mb-8 inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.3em] text-amber-300/90 font-bold"
+            className="mb-8 inline-flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.3em] text-amber-300/90 font-bold"
           >
             <span className="w-8 h-px bg-amber-300/70" />
             ИИ‑компания · Москва
+            <span className="hidden sm:inline-block w-px h-3 bg-amber-300/40" />
+            {/* Commercial offer surfaced from meta tags into the visible
+                hero — the brief flagged this as a primary CTR lever
+                ("пилот за 4–8 недель" was buried in meta description). */}
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 border border-amber-300/40 bg-amber-300/10 text-amber-200 rounded-full normal-case tracking-normal text-[11px] font-semibold">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
+              Пилот за 4–8 недель
+            </span>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-end">

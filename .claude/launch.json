@@ -17,9 +17,9 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["-C", "artifacts/itityl", "dev"],
       "port": 5173,
+      "autoPort": true,
       "env": {
-        "BASE_PATH": "/",
-        "PORT": "5173"
+        "BASE_PATH": "/"
       }
     }
   ]
