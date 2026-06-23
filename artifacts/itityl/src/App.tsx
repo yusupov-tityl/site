@@ -87,13 +87,7 @@ function Router() {
 
       <Route path="/services" component={Services} />
       <Route path="/services/ai-consulting">
-        <ComingSoon title="AI-консалтинг и выявление сценариев" parentLabel="Услуги" parentTo="/services" />
-      </Route>
-      <Route path="/services/process-audit">
-        <ComingSoon title="Обследование бизнес-процессов и ИТ-ландшафта" parentLabel="Услуги" parentTo="/services" />
-      </Route>
-      <Route path="/services/portfolio">
-        <ComingSoon title="Формирование портфеля ИИ-инициатив" parentLabel="Услуги" parentTo="/services" />
+        <ComingSoon title="AI-консалтинг" parentLabel="Услуги" parentTo="/services" />
       </Route>
       <Route path="/services/pilots">
         <ComingSoon title="Пилоты и проверка гипотез" parentLabel="Услуги" parentTo="/services" />
@@ -103,9 +97,6 @@ function Router() {
       </Route>
       <Route path="/services/integration">
         <ComingSoon title="Интеграция в корпоративные системы" parentLabel="Услуги" parentTo="/services" />
-      </Route>
-      <Route path="/services/support">
-        <ComingSoon title="Сопровождение и развитие" parentLabel="Услуги" parentTo="/services" />
       </Route>
 
       <Route component={NotFound} />
