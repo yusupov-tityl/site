@@ -396,10 +396,16 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: easeOutExpo, delay: HERO_DELAY }}
                 data-cursor="link"
-                className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-amber-300/40 bg-black/40 backdrop-blur-sm px-4 py-2 text-sm font-semibold text-amber-200 hover:bg-amber-300/10 hover:border-amber-300/70 transition-colors"
+                className="group mb-7 inline-flex items-stretch border border-white/15 bg-white/[0.02] hover:border-amber-300/50 transition-colors"
               >
-                <Clock className="w-4 h-4 text-amber-300" />
-                Пилот ИИ за 4–8 недель
+                <span className="flex items-center gap-2 bg-amber-300 px-3 py-2 text-[11px] uppercase tracking-[0.2em] font-bold text-black">
+                  <Clock className="w-3.5 h-3.5" />
+                  Пилот ИИ
+                </span>
+                <span className="flex items-center gap-3 px-4 py-2 text-[11px] uppercase tracking-[0.2em] font-bold text-white/70 group-hover:text-white transition-colors">
+                  за 4–8 недель
+                  <ArrowUpRight className="w-4 h-4 text-amber-300 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </span>
               </motion.button>
               <h1 className="font-heading font-extrabold uppercase tracking-tighter leading-[0.92] text-[clamp(44px,8.2vw,132px)]">
                 <SplitText
@@ -1239,15 +1245,48 @@ export default function Home() {
 
       {/* ── FOOTER ── */}
       <footer className="py-10 px-6 md:px-10 bg-black text-white border-t border-white/15">
-        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] uppercase tracking-[0.3em] text-white/30 font-bold">
-          <p>&copy; {new Date().getFullYear()} АЙ-ТИТУЛ. Все права защищены.</p>
-          <div className="flex items-center gap-8">
-            <a href="/privacy" data-cursor="link" className="hover:text-amber-300 transition-colors">
-              Конфиденциальность
-            </a>
-            <a href="/privacy" data-cursor="link" className="hover:text-amber-300 transition-colors">
-              Условия
-            </a>
+        <div className="max-w-[1600px] mx-auto flex flex-col gap-8">
+          {/* Реквизиты компании — требование 152-ФЗ и госзакупок. */}
+          <div className="flex flex-col items-center gap-1.5 text-[11px] leading-relaxed text-white/35 text-center">
+            <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+              <span>ООО «АЙ-ТИТУЛ»</span>
+              <span className="text-white/20">·</span>
+              <span>ИНН 9725182971</span>
+              <span className="text-white/20">·</span>
+              <span>КПП 772501001</span>
+              <span className="text-white/20">·</span>
+              <span>ОГРН 1257700145504</span>
+            </p>
+            <p>115432, г. Москва, пр-кт Андропова, д. 18, к. 1, помещ. 8/8</p>
+            <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+              <a
+                href="mailto:pochta@i-tityl.ru"
+                data-cursor="link"
+                className="hover:text-amber-300 transition-colors"
+              >
+                pochta@i-tityl.ru
+              </a>
+              <span className="text-white/20">·</span>
+              <a
+                href="tel:+79933384313"
+                data-cursor="link"
+                className="hover:text-amber-300 transition-colors"
+              >
+                +7 (993) 338-43-13
+              </a>
+            </p>
+          </div>
+
+          <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] uppercase tracking-[0.3em] text-white/30 font-bold">
+            <p>&copy; {new Date().getFullYear()} АЙ-ТИТУЛ. Все права защищены.</p>
+            <div className="flex items-center gap-8">
+              <a href="/privacy" data-cursor="link" className="hover:text-amber-300 transition-colors">
+                Конфиденциальность
+              </a>
+              <a href="/privacy" data-cursor="link" className="hover:text-amber-300 transition-colors">
+                Условия
+              </a>
+            </div>
           </div>
         </div>
       </footer>
