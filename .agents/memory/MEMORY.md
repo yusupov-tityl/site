@@ -1,0 +1,1 @@
+- [Syncing repo when git pull is blocked](git-sync-when-pull-blocked.md) — runtime git blocks pack writes even in task envs; mirror origin/main via GitHub compare+tarball API over HTTP.
