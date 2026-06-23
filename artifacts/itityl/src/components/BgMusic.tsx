@@ -59,7 +59,12 @@ export function BgMusic(_props: { src?: string }) {
   const loopRunningRef = useRef(false);
   const hoverCloseTimerRef = useRef<number | null>(null);
 
-  const [soundOn, setSoundOn] = useState(true);
+  // Honour the EntryGate choice: if the user clicked "Войти без музыки"
+  // the bootstrap flips audioState.declined. We start the pill in the
+  // OFF position so a single click of the pill is enough to turn music
+  // ON (otherwise the user would have to click twice — once to flip the
+  // visual state to "off", then once again to actually start playback).
+  const [soundOn, setSoundOn] = useState(() => !audioState.declined);
   const [volume, setVolume] = useState<number>(() => readStoredVolume());
   const [sliderOpen, setSliderOpen] = useState(false);
 

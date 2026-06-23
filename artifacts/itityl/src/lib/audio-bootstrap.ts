@@ -55,6 +55,12 @@ export type AudioState = {
   playing: boolean;
   /** True after the first user gesture has been observed. */
   unlocked: boolean;
+  /** True once the user explicitly opted OUT of music (declineAudio).
+   *  BgMusic reads this on mount so the toggle pill starts in the OFF
+   *  state — otherwise the user has to click twice to actually start
+   *  music (first click flips the pill that says "playing" off, second
+   *  click flips it back on and plays). */
+  declined: boolean;
   /** Optional Web Audio context for the FFT visualiser. */
   ctx: AudioContext | null;
   /** Analyser node for the bar visualiser. Null if Web Audio path failed. */
@@ -68,6 +74,7 @@ export const audioState: AudioState = {
   audio: null,
   playing: false,
   unlocked: false,
+  declined: false,
   ctx: null,
   analyser: null,
   onChange: new Set(),
@@ -260,8 +267,10 @@ export function declineAudio() {
   // BgMusic pill — that path uses audioState.audio.play() directly.
   declineNow = () => {
     armed = false;
+    audioState.declined = true;
     unlockNow = null;
     declineNow = null;
     cleanup();
+    notify();
   };
 })();
